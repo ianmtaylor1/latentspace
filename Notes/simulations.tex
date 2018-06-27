@@ -1,0 +1,59 @@
+\documentclass[12pt]{article}
+
+\title{Latent Space Model simulations}
+\begin{document}
+\maketitle
+
+\section{Independent Covariate}
+
+\subsection{Description}
+  This simulation tests the effect of adding additive and multiplicative random effects (latent factors) while fitting models with and without unobserved covariates.
+\subsection{Pseudo-code}
+  \begin{verbatim}
+    Set intercept = -1
+    Set beta = [1, 1, 1]
+    Set gamma = 1
+    Set n = 20 (network size)
+    For each run:
+      Set seed
+      Generate X1
+        Independently assign each node one of two groups, with equal
+              probability.
+        For each dyad (i,j), 
+          X1 = 1 if i and j are in the same group
+          X1 = -1 if i and j are in different groups
+      Generate X2
+        Indpendently assign each node a "position" from a standard normal
+              distribution.
+        For each dyad (i,j), X2 = the "distance" between i and j
+      Generate X3
+        For each dyad, X3 = independent standard normal draw
+      Generate Z
+        Same as X1, but independently generated
+      For each rep:
+        Set seed
+        Generate noise (epsilon): standard normal draw for each dyad
+        Set Y1 = X1*beta[1] + X2*beta[2] + X3*beta[3] + epsilon
+        Set Y2 = X1*beta[1] + X2*beta[2] + X3*beta[3] + gamma*Z + epsilon
+        Fit the following models and record results:
+          Y1 ~ X1 + X2 + X3
+          Y1 ~ X1 + X2 + X3 + additive latent effects
+          Y1 ~ X1 + X2 + X3 + additive + multiplicative latent effects
+          Y2 ~ X1 + X2 + X3 + Z
+          Y2 ~ X1 + X2 + X3 + Z + additive latent effects
+          Y2 ~ X1 + X2 + X3 + Z + additive + multiplicative latent effects
+	\end{verbatim}
+\subsection{Results}
+	
+\subsection{Files}
+  \begin{itemize}
+    \item Code/independent\_covariate.R
+    \item Results/independent\_covariate.R
+    \item Code/indepenent\_covariate\_results\_analysis.R
+  \end{itemize}
+
+\section{Independent Covariate - Additive}
+\subsection{Description}
+  This simulation is designed to be an extension of the first, except for independent covariates that would be ``best" fit by additive random effects.
+
+\end{document}
