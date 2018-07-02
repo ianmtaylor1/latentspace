@@ -1,6 +1,6 @@
 # Analyze the results of the first Independent Covariate simulation
 
-results <- read.csv("Results/Independent_Covariate.csv", header=TRUE, stringsAsFactors=FALSE)
+results <- read.csv("Results/Independent_Covariate_2_nodcor.csv", header=TRUE, stringsAsFactors=FALSE)
 
 results[,"Covered"] <- 1 * ((results[,"TrueValue"] >= results[,"CI_low"]) & (results[,"TrueValue"] <= results[,"CI_high"]))
 results[,"CI_width"] <- results[,"CI_high"] - results[,"CI_low"]
@@ -20,12 +20,14 @@ for (r in 1:(dim(aggregate)[1])) {
   aggregate[r,"estimate_mean"] <- mean(subresults[,"Estimate"])
   aggregate[r,"estimate_var"] <- var(subresults[,"Estimate"])
   aggregate[r,"mean_CI_width"] <- mean(subresults[,"CI_width"])
-  if (aggregate[r,"AddRE"] == FALSE) {
-    aggregate[r,"RndEffects"] <- "No"
-  } else if (aggregate[r,"MulRE"] == FALSE) {
-    aggregate[r,"RndEffects"] <- "Add"
+  if((aggregate[r,"AddRE"] == FALSE) && (aggregate[r,"MulRE"] == FALSE)) {
+    aggregate[r,"RndEffects"] <- ""
+  } else if ((aggregate[r,"AddRE"] == TRUE) && (aggregate[r,"MulRE"] == FALSE)) {
+    aggregate[r,"RndEffects"] <- "A"
+  } else if ((aggregate[r,"AddRE"] == FALSE) && (aggregate[r,"MulRE"] == TRUE)) {
+    aggregate[r,"RndEffects"] <- "M"
   } else {
-    aggregate[r,"RndEffects"] <- "Mul"
+    aggregate[r,"RndEffects"] <- "AM"
   }
   aggregate[r,"Var"] <- substr(aggregate[r,"Variable"],1,2)
 }
