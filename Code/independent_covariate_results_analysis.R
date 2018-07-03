@@ -27,7 +27,7 @@ for (r in 1:(dim(aggregate)[1])) {
   } else if ((aggregate[r,"AddRE"] == FALSE) && (aggregate[r,"MulRE"] == TRUE)) {
     aggregate[r,"RndEffects"] <- "M"
   } else {
-    aggregate[r,"RndEffects"] <- "AM"
+    aggregate[r,"RndEffects"] <- "MA"
   }
   aggregate[r,"Var"] <- substr(aggregate[r,"Variable"],1,2)
 }
