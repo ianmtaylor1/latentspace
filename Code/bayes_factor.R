@@ -3,24 +3,28 @@ library(doParallel)
 # Calculate the density of a MVN distribution
 dmvnorm <- function(x,
                     mu = rep(0,length(x)),
-                    Sigma = diag(length(x)),
-                    Sigma.inv = chol2inv(chol(Sigma))
+                    Sigma = diag(length(x))
                    ) {
-  sqrt(det(Sigma.inv) / (2 * pi)) * exp(-0.5 * t(x - mu) %*% Sigma.inv %*% (x - mu))
+  n <- length(x)
+  Sigma.chol <- chol(Sigma)
+  sqrt.det.Sigma <- prod(diag(Sigma.chol))
+  inv.sqrt.2pi <- 0.39894228040143267794
+  ((inv.sqrt.2pi ^ n) / sqrt.det.Sigma) * exp(-0.5 * t(x - mu) %*% chol2inv(Sigma.chol) %*% (x - mu))
 }
 
 # Computes the bayes factor for comparing a model with no random effects vs
 # a model with a row random effect.
 # Only works for normal models, without an intercept, non-symmetric
 bayes_factor <- function(Y, Xdyad=NULL, Xrow=NULL, Xcol=NULL, intercept=FALSE,
-                         seed=1, samples=10000) {
+                         prior_rvar=0.5, prior_cvar=0.5,
+                         seed=NULL, samples=10000) {
   library(amen)
   # Baked in parameters for this version
   model <- "nrm"
   intercept <- FALSE
   prior <- list()
   
-  set.seed(seed)
+  if (!is.null(seed)) set.seed(seed)
   
   # Build the design matrix
   diag(Y) <- NA
@@ -31,16 +35,26 @@ bayes_factor <- function(Y, Xdyad=NULL, Xrow=NULL, Xcol=NULL, intercept=FALSE,
   XX <- t(apply(X,3,c)) %*% apply(X,3,c)
   
   # Arrays to store densities in
-  densities_no_rvar <- c()
-  densities_rvar <- c()
+  densities_none <- c()
+  densities_a <- c()
+  densities_b <- c()
+  densities_ab <- c()
   
   for (s in 1:samples) {
     # Draw sigma-squared from prior
     sigma2 <- 1/rgamma(n=1, shape=1/2, scale=1/2)
-    # Draw sigma-squared-a from prior
+    # Draw sigma-squared-a from prior (for only row effects)
     sigma2a <- 1/rgamma(n=1, shape=1/2, scale=1/2)
+    # Draw sigma-squared-b from prior (for only column effects)
+    sigma2b <- 1/rgamma(n=1, shape=1/2, scale=1/2)
     # Draw a from conditional prior, given sigma-squared-a
     a <- rnorm(n=n, mean=0, sd=sqrt(sigma2a))
+    # Draw b from conditional prior, given sigma-squared-b
+    b <- rnorm(n=n, mean=0, sd=sqrt(sigma2b))
+    # Draw sigma-squared-ab from prior (for both row and column effects)
+    sigma2ab <- solve(rwish(S0=diag(2), nu=3))
+    # Draw ab from conditional prior, given sigma-squared-ab
+    ab <- rmvnorm(n=n, mu=rep(0,2), Sigma=sigma2ab)
     # Draw beta from prior
     if (p > 0) {
       beta <- c(rmvnorm(n=1, mu=rep(0,p), Sigma=n^2 * XX))  # Note: if p==0, this will produce numeric(0)
@@ -50,128 +64,49 @@ bayes_factor <- function(Y, Xdyad=NULL, Xrow=NULL, Xcol=NULL, intercept=FALSE,
     Xb <- Xbeta(X, beta)
     # Calculate condition density of Y for every non-NA element in matrix
     # (is there a faster way to do this?)
-    d_rvar <- 1
-    d_no_rvar <- 1
+    d_none <- 1
+    d_a <- 1
+    d_b <- 1
+    d_ab <- 1
     for (i in 1:n) {
       for (j in 1:n) {
         if (!is.na(Y[i,j])) {
-          # Calculate density with a
-          d_rvar <- d_rvar * dnorm(Y[i,j], mean=Xb[i,j]+a[i], sd=sqrt(sigma2))
-          # Calculate density without a
-          d_no_rvar <- d_no_rvar * dnorm(Y[i,j], mean=Xb[i,j], sd=sqrt(sigma2))
+          # Calculate density for no row or column effects
+          d_none <- d_none * dnorm(Y[i,j], mean=Xb[i,j], sd=sqrt(sigma2))
+          # Calculate density with a row effect only
+          d_a <- d_a * dnorm(Y[i,j], mean=Xb[i,j]+a[i], sd=sqrt(sigma2))
+          # Calculate density with a column effect only
+          d_b <- d_b * dnorm(Y[i,j], mean=Xb[i,j]+b[j], sd=sqrt(sigma2))
+          # Calculate density with both a row and column effect
+          d_ab <- d_ab * dnorm(Y[i,j], mean=Xb[i,j]+ab[i,1]+ab[j,2], sd=sqrt(sigma2))
         }
       }
     }
-    densities_rvar <- c(densities_rvar, d_rvar)
-    densities_no_rvar <- c(densities_no_rvar, d_no_rvar)
+    densities_none <- c(densities_none, d_none)
+    densities_a <- c(densities_a, d_a)
+    densities_b <- c(densities_b, d_b)
+    densities_ab <- c(densities_ab, d_ab)
   }
   
-  mean(densities_rvar)/mean(densities_no_rvar)
-}
-
-
-# Computes the bayes factor for comparing a model with no random effects vs
-# a model with a row random effect.
-# Only works for normal models, without an intercept, non-symmetric
-# Does the same thing as the other function, but where it can, will use random
-# Effects as part of the covariance of Y instead of having to sample over them.
-# Maybe faster?
-bayes_factor_covar <- function(Y, Xdyad=NULL, Xrow=NULL, Xcol=NULL, intercept=FALSE,
-                               seed=1, samples=10000) {
-  library(amen)
-  # Baked in parameters for this version
-  model <- "nrm"
-  intercept <- FALSE
-  prior <- list()
+  avg_none <- mean(densities_none)
+  avg_a <- mean(densities_a)
+  avg_b <- mean(densities_b)
+  avg_ab <- mean(densities_ab)
   
-  set.seed(seed)
+  totalweight <- prior_rvar * prior_cvar * avg_ab +
+                 (1 - prior_rvar) * prior_cvar * avg_b +
+                 prior_rvar * (1 - prior_cvar) * avg_a +
+                 (1 - prior_rvar) * (1 - prior_cvar) * avg_none
   
-  # Build the design matrix
-  diag(Y) <- NA
-  n <- nrow(Y)
-  X <- design_array(Xrow,Xcol,Xdyad,intercept,n)
-  p <- dim(X)[3]
+  posterior <- c(
+    (1 - prior_rvar) * (1 - prior_cvar) * avg_none / totalweight,
+    prior_rvar * (1 - prior_cvar) * avg_a / totalweight,
+    (1 - prior_rvar) * prior_cvar * avg_b / totalweight,
+    prior_rvar * prior_cvar * avg_ab / totalweight
+  )
+  names(posterior) <- c("none","rvar","cvar","rcvar")
   
-  XX <- t(apply(X,3,c)) %*% apply(X,3,c)
-  
-  # Convenient pieces to use later
-  cY <- c(Y)                 # Columnized version of Y.
-  cY_na_idx <- !is.na(c(Y))  # Boolean array indexing NA's in cy
-  nn <- sum(cY_na_idx)       # Number of non-NA entries in Y
-  
-  # Build nn-by-nn matrices to use as a base for adding in covariance
-  # structures into the covariance matrix for calculating normal density
-  # as necessary
-  # Note: These are meant to be the covariance matrix for the columnized version
-  # of Y, c(Y). R does "column first" conversion.
-  
-  # rcor_base is a base for adding row correlation (i.e. from 'a' random effects)
-  # It has a 1 in every entry for two edges (i,j) and (i,k) in the same row
-  rcor_base <- matrix(0, nrow=n*n, ncol=n*n)
-  # ccor_base is a base for adding column correlation (i.e. from 'b' random effects)
-  # It has a 1 in every entry for two edges (i,j) and (k,j) that are in the same column
-  ccor_base <- matrix(0,nrow=n*n, ncol=n*n)
-  # tcor_base is a base for adding "transitive" correlations. i.e. due to sigma-squared-ab,
-  # when one edge's receiver is another edge's sender.
-  tcor_base <- matrix(0,nrow=n*n, ncol=n*n)
-  # Fill the matrices
-  for (i in 1:n) {
-    # Construct a vector for row i
-    onecol <- rep(0,n)
-    onecol[i] <- 1
-    inrow <- rep(onecol, n)
-    # Construct a vector for column i
-    incol <- c(rep(0, n*(i-1)), rep(1, n), rep(0, n*(n-i)))
-    # Apply outer products and add to correlation base matrices
-    rcor_base <- rcor_base + outer(inrow, inrow, "*")
-    ccor_base <- ccor_base + outer(incol, incol, "*")
-    tcor_base <- tcor_base + outer(inrow, incol, "*") + outer(incol, inrow, "*")
-  }
-  rcor_base <- rcor_base[cY_na_idx,cY_na_idx]
-  ccor_base <- ccor_base[cY_na_idx,cY_na_idx]
-  tcor_base <- tcor_base[cY_na_idx,cY_na_idx] # + 2 * diag(nn), if the amen vignette is to be believed
-  
-  # dcor_base is a base for adding dyad correlation. It has a 1 in every entry
-  # for a dyad pair e.g. edges (i,j) and (j,i), and a zero everywhere else
-  dcor_base <- matrix(0, nrow=n*n, ncol=n*n)
-  for (i in 1:(n-1)) {
-    for (j in (i+1):n) {
-      dcor_base[n*(i-1)+j,n*(j-1)+i] <- 1
-      dcor_base[n*(j-1)+9,n*(i-1)+j] <- 1
-    }
-  }
-  dcor_base <- dcor_base[cY_na_idx,cY_na_idx]
-  
-  # Arrays to store densities in
-  densities_no_rvar <- c()
-  densities_rvar <- c()
-  
-  for (s in 1:samples) {
-    # Draw sigma-squared from prior
-    sigma2 <- 1/rgamma(n=1, shape=1/2, scale=1/2)
-    # Draw sigma-squared-a from prior
-    sigma2a <- 1/rgamma(n=1, shape=1/2, scale=1/2)
-    # Draw beta from prior
-    if (p > 0) {
-      beta <- c(rmvnorm(n=1, mu=rep(0,p), Sigma=n^2 * XX))  # Note: if p==0, this will produce numeric(0)
-    } else {
-      beta <- numeric(0)
-    }
-    Xb <- Xbeta(X, beta)
-    # Calculate contional density of Y for every non-NA element in matrix
-    # using the dmvnorm function
-    d_rvar <- dmvnorm(cY[cY_na_idx],
-                      mu = c(Xb)[cY_na_idx],
-                      Sigma = sigma2 * diag(nn) + sigma2a * rcor_base)
-    d_no_rvar <- dmvnorm(cY[cY_na_idx],
-                         mu = c(Xb)[cY_na_idx],
-                         Sigma = sigma2 * diag(nn))
-    
-    densities_rvar <- c(densities_rvar, d_rvar)
-    densities_no_rvar <- c(densities_no_rvar, d_no_rvar)
-  }
-  
-  mean(densities_rvar)/mean(densities_no_rvar)
+  posterior
 }
 
 ##### Main section of code
@@ -205,8 +140,8 @@ results <- foreach(run=1:runs, .combine="rbind") %do% {
     
     # Calculate the bayes factor and output it
     data.frame(rep=rep, run=run,
-               bf_no_rvar=bayes_factor(y_no_rvar),
-               bf_rvar=bayes_factor(y_rvar))
+               bf_no_rvar=bayes_factor(y_no_rvar, seed=1),
+               bf_rvar=bayes_factor(y_rvar, seed=1))
     #data.frame(rep=rep, run=run,
     #           bf_no_rvar=bayes_factor_covar(y_no_rvar),
     #           bf_rvar=bayes_factor_covar(y_rvar))
