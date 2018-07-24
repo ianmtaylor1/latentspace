@@ -11,7 +11,7 @@ repsperplot <- 10
 for (run in runs) {
   reps <- unique(results[results[,"run"] == run , "rep"])
   numreps <- max(reps)
-  numplots <- ((numreps-1) %/% repsperplot) + 1
+  numplots <- ((numreps - 1) %/% repsperplot) + 1
   ymin <- min(log(results[results[,"run"]==run,"bf_rvar"]),
               log(results[results[,"run"]==run,"bf_no_rvar"]))
   ymax <- min(max(log(results[results[,"run"]==run,"bf_rvar"]),

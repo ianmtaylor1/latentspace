@@ -1,2 +1,4 @@
 Notes/*.aux
 Notes/*.log
+/Code/.Rhistory
+/Results/.Rhistory
