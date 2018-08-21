@@ -1,6 +1,6 @@
 # Analyze the results of the first Independent Covariate simulation
 
-results <- read.csv("Results/Independent_Covariate_2_nodcor.csv", header=TRUE, stringsAsFactors=FALSE)
+results <- read.csv("Results/Independent_Covariate_3_normal.csv", header=TRUE, stringsAsFactors=FALSE)
 
 results[,"Covered"] <- 1 * ((results[,"TrueValue"] >= results[,"CI_low"]) & (results[,"TrueValue"] <= results[,"CI_high"]))
 results[,"CI_width"] <- results[,"CI_high"] - results[,"CI_low"]
