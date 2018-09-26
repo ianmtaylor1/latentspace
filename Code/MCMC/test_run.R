@@ -42,5 +42,8 @@ for (k in 1:length(beta)) {
 }
 Y <- eta + matrix(rnorm(n = n*n), nrow=n, ncol=n)
 
-#results <- imt_ame(Y=Y, Xdyad=Xd)
-results <- ame(Y=Y, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, model="nrm", gof=FALSE, plot=FALSE)
+# Get results!
+amen.results <- ame(Y=Y, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, model="nrm", gof=FALSE, plot=FALSE)
+imt.results <- imt_ame(Y=Y, Xdyad=Xd)
+
+# Compare!

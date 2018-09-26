@@ -155,7 +155,7 @@ imt_ame <- function(Y, Xdyad=NULL, Xrow=NULL, Xcol=NULL, intercept=TRUE,
   
   # Create form in which to return results
   results.beta <- matrix(unlist(samples.beta), ncol=p, byrow=TRUE)
-  colnames(beta) <- dimnames(X)[[3]]
+  colnames(results.beta) <- dimnames(X)[[3]]
   results.a <- matrix(unlist(samples.a), ncol=n, byrow=TRUE)
   results.b <- matrix(unlist(samples.b), ncol=n, byrow=TRUE)
   vcdata <- c()
