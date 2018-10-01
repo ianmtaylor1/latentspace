@@ -169,6 +169,7 @@ imt_ame <- function(Y, Xdyad=NULL, Xrow=NULL, Xcol=NULL, intercept=TRUE,
     )
   }
   results.vc <- matrix(vcdata, ncol=5, byrow=TRUE)
+  colnames(results.vc) <- c("va","vb","cab","rho","ve")
   
   # Return Samples
   return(

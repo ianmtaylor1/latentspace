@@ -46,4 +46,27 @@ Y <- eta + matrix(rnorm(n = n*n), nrow=n, ncol=n)
 amen.results <- ame(Y=Y, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, model="nrm", gof=FALSE, plot=FALSE)
 imt.results <- imt_ame(Y=Y, Xdyad=Xd)
 
-# Compare!
+# Compare betas
+for (param in c("intercept","X1.dyad","X2.dyad","X3.dyad")) {
+  par(mfcol=c(2,1))
+  hist(imt.results$BETA[,param], main=paste("IMT version,",param))
+  hist(amen.results$BETA[,param], main=paste("amen version,",param))
+}
+
+# Compare "Variance Components"
+for (vc in c("va","vb","cab","ve")) {
+  par(mfcol=c(2,1))
+  hist(imt.results$VC[,vc], main=paste("IMT version, vc =",vc))
+  hist(amen.results$VC[,vc], main=paste("amen version, vc =",vc))
+}
+
+# Compare A and B posterior means
+imt.apm <- colMeans(imt.results$A)
+imt.bpm <- colMeans(imt.results$B)
+par(mfcol=c(2,1))
+plot(x=amen.results$APM, y=imt.apm, 
+     main="a posterior mean", xlab="amen", ylab="IMT")
+abline(a=0,b=1)
+plot(x=amen.results$BPM, y=imt.bpm,
+     main="b posterior mean", xlab="amen", ylab="IMT")
+abline(a=0,b=1)
