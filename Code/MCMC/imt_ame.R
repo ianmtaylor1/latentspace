@@ -50,7 +50,7 @@ update_sigma.squared_fc <- function(Y, X, beta, a, b, sigma.ab) {
   yprime <- Y - (a %*% t(rep(1, n))) - (rep(1, n) %*% t(b)) - Xbeta(X, beta)
   ycol <- c(yprime)[nafilter(n)]
   # Parameters of fc gamma distribution of sigma.squared inverse
-  shape <- n/2 + alpha_sigma
+  shape <- ((n * (n - 1) / 2) + alpha_sigma)
   rate <- (t(ycol) %*% ycol) / 2 + 1/beta_sigma
   # Generate new sigma.squared
   sigma.squared <- 1/rgamma(n=1, shape=shape, rate=rate)
