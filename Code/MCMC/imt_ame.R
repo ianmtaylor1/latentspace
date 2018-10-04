@@ -21,9 +21,9 @@ nafilter <- function(n) {
 ###### FULL CONDITONAL UPDATE FUNCTIONS #################################
 #########################################################################
 
-update_beta_fc <- function(Y, X, sigma.squared, a, b, sigma.ab) {
+update_beta_fc <- function(Y, Z, X, sigma.squared, a, b, sigma.ab) {
   # Hyperparameters
-  n <- dim(Y)[1]
+  n <- dim(Z)[1]
   p <- dim(X)[3]
   Xmat <- apply(X, 3, c)[nafilter(n),]
   XtX <- t(Xmat) %*% Xmat
@@ -31,59 +31,59 @@ update_beta_fc <- function(Y, X, sigma.squared, a, b, sigma.ab) {
   # Base matrix used in both mean and covar of beta
   V <- solve(XtX + solve(Sigma_beta / sigma.squared))
   # Y without all other effects
-  yprime <- Y - (a %*% t(rep(1, n))) - (rep(1, n) %*% t(b))
-  ycol <- c(yprime)[nafilter(n)]
+  zprime <- Z - (a %*% t(rep(1, n))) - (rep(1, n) %*% t(b))
+  zcol <- c(zprime)[nafilter(n)]
   # The mean of beta's full conditional distribution
-  fcmean <- V %*% t(Xmat) %*% ycol
+  fcmean <- V %*% t(Xmat) %*% zcol
   # Generate new beta
   beta <- c(rmvnorm(n=1, mu=fcmean, Sigma=sigma.squared * V))
   return(beta)
 }
 
-update_sigma.squared_fc <- function(Y, X, beta, a, b, sigma.ab) {
+update_sigma.squared_fc <- function(Y, Z, X, beta, a, b, sigma.ab) {
   # Hyperparameters
   alpha_sigma <- 0.5
   beta_sigma <- 0.5
   # Find n
-  n <- dim(Y)[1]
+  n <- dim(Z)[1]
   # Y without all other effects
-  yprime <- Y - (a %*% t(rep(1, n))) - (rep(1, n) %*% t(b)) - Xbeta(X, beta)
-  ycol <- c(yprime)[nafilter(n)]
+  zprime <- Z - (a %*% t(rep(1, n))) - (rep(1, n) %*% t(b)) - Xbeta(X, beta)
+  zcol <- c(zprime)[nafilter(n)]
   # Parameters of fc gamma distribution of sigma.squared inverse
   shape <- ((n * (n - 1) / 2) + alpha_sigma)
-  rate <- (t(ycol) %*% ycol) / 2 + 1/beta_sigma
+  rate <- (t(zcol) %*% zcol) / 2 + 1/beta_sigma
   # Generate new sigma.squared
   sigma.squared <- 1/rgamma(n=1, shape=shape, rate=rate)
   return(sigma.squared)
 }
 
-update_a_fc <- function(Y, X, beta, sigma.squared, b, sigma.ab) {
+update_a_fc <- function(Y, Z, X, beta, sigma.squared, b, sigma.ab) {
   # Calculate rowmeans of Y, without other effects
-  yprime <- Y - (rep(1, n) %*% t(b)) - Xbeta(X, beta)
-  n <- dim(Y)[1]
-  yrowmeans <- rowSums(yprime, na.rm=TRUE) / (n - 1)
+  zprime <- Z - (rep(1, n) %*% t(b)) - Xbeta(X, beta)
+  n <- dim(Z)[1]
+  zrowmeans <- rowSums(zprime, na.rm=TRUE) / (n - 1)
   # Calculate variance and meanvector of 
   var.a <- 1 / (((n - 1) / sigma.squared) + (sigma.ab[2,2] / det(sigma.ab)))
-  mean.a <- var.a * (((n-1) * yrowmeans / sigma.squared) + (sigma.ab[1,2] * b / det(sigma.ab)))
+  mean.a <- var.a * (((n-1) * zrowmeans / sigma.squared) + (sigma.ab[1,2] * b / det(sigma.ab)))
   # Calculate new a's
   a <- rnorm(n=n, mean=mean.a, sd=sqrt(var.a))
   return(a)
 }
 
-update_b_fc <- function(Y, X, beta, sigma.squared, a, sigma.ab) {
+update_b_fc <- function(Y, Z, X, beta, sigma.squared, a, sigma.ab) {
   # Calculate colmeans of Y, without other effects
-  yprime <- Y - (a %*% t(rep(1, n))) - Xbeta(X, beta)
-  n <- dim(Y)[1]
-  ycolmeans <- colSums(yprime, na.rm=TRUE) / (n - 1)
+  zprime <- Z - (a %*% t(rep(1, n))) - Xbeta(X, beta)
+  n <- dim(Z)[1]
+  zcolmeans <- colSums(zprime, na.rm=TRUE) / (n - 1)
   # Calculate variance and meanvector of 
   var.b <- 1 / (((n - 1) / sigma.squared) + (sigma.ab[1,1] / det(sigma.ab)))
-  mean.b <- var.b * (((n-1) * ycolmeans / sigma.squared) + (sigma.ab[1,2] * a / det(sigma.ab)))
+  mean.b <- var.b * (((n-1) * zcolmeans / sigma.squared) + (sigma.ab[1,2] * a / det(sigma.ab)))
   # Calculate new b's
   b <- rnorm(n=n, mean=mean.b, sd=sqrt(var.b))
   return(b)
 }
 
-update_sigma.ab_fc <- function(Y, X, beta, sigma.squared, a, b) {
+update_sigma.ab_fc <- function(Y, Z, X, beta, sigma.squared, a, b) {
   # Hyperparameters
   V_sigma.ab <- diag(c(1,1))
   n_sigma.ab <- 3
@@ -103,12 +103,33 @@ update_sigma.ab_fc <- function(Y, X, beta, sigma.squared, a, b) {
   return(solve(rwish(S0=Snew, nu=nunew)))
 }
 
+update_Z_bin_fc <- function(Y, X, beta, sigma.squared, a, b, sigma.ab) {
+  # In binary (probit) case, the full conditional of z is a truncated normal
+  n <- dim(Y)[1]
+  Z <- matrix(rep(NA,n*n), ncol=n)
+  Zmean <- Xbeta(X, beta) + (a %*% t(rep(1, n))) + (rep(1, n) %*% t(b))
+  for (i in 1:n) {
+    for (j in 1:n) {
+      if (i == j) {next}
+      # Generate normal values until it has the correct sign
+      Z[i,j] <- rnorm(Zmean[i,j], sd=sqrt(sigma.squared))
+      while (xor(Z[i,j] < 0, Y[i,j] == 0)) {
+        Z[i,j] <- rnorm(Zmean[i,j], sd=sqrt(sigma.squared))
+      }
+    }
+  }
+  return(Z)
+}
 #########################################################################
 ###### MAIN MCMC FUNCTION ###############################################
 #########################################################################
 
 imt_ame <- function(Y, Xdyad=NULL, Xrow=NULL, Xcol=NULL, intercept=TRUE,
+                    model="nrm",
                     burn=500, n.iter=10000, save.every=25) {
+  # Check for appropriate model
+  stopifnot(model %in% c("nrm", "bin"))
+  
   # Set up data as appropriate
   stopifnot(length(dim(Y)) == 2)
   stopifnot(dim(Y)[1] == dim(Y)[2])
@@ -123,6 +144,12 @@ imt_ame <- function(Y, Xdyad=NULL, Xrow=NULL, Xcol=NULL, intercept=TRUE,
   beta <- rep(0, p)
   sigma.squared <- 1
   sigma.ab <- diag(2)
+  if (model == "nrm") {
+    Z <- Y
+  } else if (model == "bin") {
+    Z <- matrix(rep(0,n*n), ncol=n)
+    diag(Z) <- NA
+  }
   
   # Lists to save the samples in temporarily
   samples.a <- list()
@@ -133,16 +160,27 @@ imt_ame <- function(Y, Xdyad=NULL, Xrow=NULL, Xcol=NULL, intercept=TRUE,
   
   # Iterate through the gibbs sampler
   for (i in 1:(n.iter + burn)) {
+    # Update latent normal variables (if probit model)
+    if (model == "nrm") {
+      Z <- Y
+    } else if (model == "bin") {
+      Z <- update_Zbin_fc(Y=Y, X=X, beta=beta, sigma.squared=sigma.squared, a=a, b=b, sigma.ab=sigma.ab)
+    }
     # Update sigma.squared
-    sigma.squared <- update_sigma.squared_fc(Y=Y, X=X, beta=beta, a=a, b=b, sigma.ab=sigma.ab)
+    if (model == "nrm") {
+      sigma.squared <- update_sigma.squared_fc(Y=Y, Z=Z, X=X, beta=beta, a=a, b=b, sigma.ab=sigma.ab)
+    } else if (model == "bin") {
+      sigma.squared <- 1
+    }
     # Update Sigma.ab
-    sigma.ab <- update_sigma.ab_fc(Y=Y, X=X, beta=beta, sigma.squared=sigma.squared, a=a, b=b)
+    sigma.ab <- update_sigma.ab_fc(Y=Y, Z=Z, X=X, beta=beta, sigma.squared=sigma.squared, a=a, b=b)
     # Update beta
-    beta <- update_beta_fc(Y=Y, X=X, sigma.squared=sigma.squared, a=a, b=b, sigma.ab=sigma.ab)
+    beta <- update_beta_fc(Y=Y, Z=Z, X=X, sigma.squared=sigma.squared, a=a, b=b, sigma.ab=sigma.ab)
     # Update a,b
-    a <- update_a_fc(Y=Y, X=X, beta=beta, sigma.squared=sigma.squared, b=b, sigma.ab=sigma.ab)
-    b <- update_b_fc(Y=Y, X=X, beta=beta, sigma.squared=sigma.squared, a=a, sigma.ab=sigma.ab)
-    # Update latent y? (TBD: probit model)
+    a <- update_a_fc(Y=Y, Z=Z, X=X, beta=beta, sigma.squared=sigma.squared, b=b, sigma.ab=sigma.ab)
+    b <- update_b_fc(Y=Y, Z=Z, X=X, beta=beta, sigma.squared=sigma.squared, a=a, sigma.ab=sigma.ab)
+    
+    # Save if necessary
     if ((i > burn) && ((i-burn) %% save.every == 0)) {
       cat("Saving...",i,"\n")
       samples.a <- append(samples.a, list(a))
