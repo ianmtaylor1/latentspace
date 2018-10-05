@@ -6,7 +6,7 @@ source("imt_ame.R")
 # Generate some test x and y
 intercept <- -1
 beta <- c(1,1,1) # True coefficients (not including intercept)
-sigma.squared <- 1
+sigma.squared <- 1 # Must stay the same for probit model
 n <- 50
 
 #### Generate design matrix X for dyad covariates
@@ -49,16 +49,16 @@ for (k in 1:length(beta)) {
 }
 eta <- eta + a %*% t(rep(1,n))
 eta <- eta + rep(1,n) %*% t(b)
-Y <- eta + matrix(rnorm(n = n*n, mean=0, sd=sqrt(sigma.squared)), nrow=n, ncol=n)
-
+Z <- eta + matrix(rnorm(n = n*n, mean=0, sd=sqrt(sigma.squared)), nrow=n, ncol=n)
+Y <- 1 * (Z >= 0)
 ###########
 # RESULTS #
 ###########
 
 
 # Get results!
-amen.results <- ame(Y=Y, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, model="nrm", gof=FALSE, plot=FALSE)
-imt.results <- imt_ame(Y=Y, Xdyad=Xd)
+amen.results <- ame(Y=Y, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, model="bin", gof=FALSE, plot=FALSE)
+imt.results <- imt_ame(Y=Y, Xdyad=Xd, model="bin")
 
 # Compare betas
 for (param in c("intercept","X1.dyad","X2.dyad","X3.dyad")) {
@@ -95,11 +95,11 @@ fc.sigma.ab <- matrix(rep(0,4), ncol=2)
 X <- design_array(Xdyad=Xd, intercept=TRUE, n=n)
 reps <- 10000
 for (i in 1:reps) {
-  fc.a <- fc.a + update_a_fc(Y=Y, Z=Y, X=X, beta=c(intercept,beta), sigma.squared=sigma.squared, b=b, sigma.ab=sigma.ab)
-  fc.b <- fc.b + update_b_fc(Y=Y, Z=Y, X=X, beta=c(intercept,beta), sigma.squared=sigma.squared, a=a, sigma.ab=sigma.ab)
-  fc.beta <- fc.beta + update_beta_fc(Y=Y, Z=Y, X=X, sigma.squared=sigma.squared, a=a, b=b, sigma.ab=sigma.ab)
-  fc.sigma.squared <- fc.sigma.squared + update_sigma.squared_fc(Y=Y, Z=Y, X=X, beta=c(intercept,beta), a=a, b=b, sigma.ab=sigma.ab)
-  fc.sigma.ab <- fc.sigma.ab + update_sigma.ab_fc(Y=Y, Z=Y, X=X, beta=c(intercept,beta), sigma.squared=sigma.squared, a=a, b=b)
+  fc.a <- fc.a + update_a_fc(Y=Y, Z=Z, X=X, beta=c(intercept,beta), sigma.squared=sigma.squared, b=b, sigma.ab=sigma.ab)
+  fc.b <- fc.b + update_b_fc(Y=Y, Z=Z, X=X, beta=c(intercept,beta), sigma.squared=sigma.squared, a=a, sigma.ab=sigma.ab)
+  fc.beta <- fc.beta + update_beta_fc(Y=Y, Z=Z, X=X, sigma.squared=sigma.squared, a=a, b=b, sigma.ab=sigma.ab)
+  fc.sigma.squared <- fc.sigma.squared + update_sigma.squared_fc(Y=Y, Z=Z, X=X, beta=c(intercept,beta), a=a, b=b, sigma.ab=sigma.ab)
+  fc.sigma.ab <- fc.sigma.ab + update_sigma.ab_fc(Y=Y, Z=Z, X=X, beta=c(intercept,beta), sigma.squared=sigma.squared, a=a, b=b)
 }
 fc.a <- fc.a/reps
 fc.b <- fc.b/reps

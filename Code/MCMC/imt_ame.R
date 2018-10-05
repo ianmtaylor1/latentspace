@@ -1,4 +1,5 @@
 library(amen)
+library(truncnorm)
 
 #########################################################################
 ###### HELPER FUNCTIONS #################################################
@@ -111,10 +112,11 @@ update_Z_bin_fc <- function(Y, X, beta, sigma.squared, a, b, sigma.ab) {
   for (i in 1:n) {
     for (j in 1:n) {
       if (i == j) {next}
-      # Generate normal values until it has the correct sign
-      Z[i,j] <- rnorm(Zmean[i,j], sd=sqrt(sigma.squared))
-      while (xor(Z[i,j] < 0, Y[i,j] == 0)) {
-        Z[i,j] <- rnorm(Zmean[i,j], sd=sqrt(sigma.squared))
+      # Generate truncated normal values
+      if (Y[i,j] == 0) {
+        Z[i,j] <- rtruncnorm(n=1, b=0, mean=Zmean[i,j], sd=sqrt(sigma.squared))
+      } else {
+        Z[i,j] <- rtruncnorm(n=1, a=0, mean=Zmean[i,j], sd=sqrt(sigma.squared))
       }
     }
   }
@@ -164,7 +166,7 @@ imt_ame <- function(Y, Xdyad=NULL, Xrow=NULL, Xcol=NULL, intercept=TRUE,
     if (model == "nrm") {
       Z <- Y
     } else if (model == "bin") {
-      Z <- update_Zbin_fc(Y=Y, X=X, beta=beta, sigma.squared=sigma.squared, a=a, b=b, sigma.ab=sigma.ab)
+      Z <- update_Z_bin_fc(Y=Y, X=X, beta=beta, sigma.squared=sigma.squared, a=a, b=b, sigma.ab=sigma.ab)
     }
     # Update sigma.squared
     if (model == "nrm") {
