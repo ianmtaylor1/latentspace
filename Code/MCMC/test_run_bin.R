@@ -7,7 +7,7 @@ source("imt_ame.R")
 intercept <- -1
 beta <- c(1,1,1) # True coefficients (not including intercept)
 sigma.squared <- 1 # Must stay the same for probit model
-n <- 50
+n <- 20
 
 #### Generate design matrix X for dyad covariates
 # Start empty
