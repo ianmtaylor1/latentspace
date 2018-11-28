@@ -1,5 +1,14 @@
 library(RColorBrewer)
 
+gfxfolder <- "graphics" # Change this if you want
+
+dir.create(gfxfolder)
+mypng <- function(filename, width=640, height=640, ...) {
+  filename <- paste(gfxfolder,"/",filename,sep="")
+  png(filename, width, height, ...)
+}
+
+
 # Get a good looking color palette
 mycolors <- brewer.pal(8, "Set1")
 
@@ -23,12 +32,13 @@ dinvgam <- function(x) {
 x <- seq(.01, 5, by=.001)
 y.cauchy2 <- dcauchy2(x)
 y.ig <- dinvgam(x)
+mypng("Cauchy-squared.png")
 plot(x, y.cauchy2, type="l", col=mycolors[1])
 lines(x, y.ig, type="l", col=mycolors[2])
 legend(x=median(x),y=max(y.cauchy2, y.ig),
        legend=c("Cauchy Squared", "Inverse Gamma"),
        col=mycolors[1:2], lty="solid", lwd=2)
-
+dev.off()
 
 # Marginal density of the horseshoe prior
 dhorseshoe <- function(x) {
@@ -62,6 +72,7 @@ y.hs <- dhorseshoe(x)
 y.igprior <- digprior(x)
 y.norm <- dnorm(x, sd=1)
 
+mypng("Horseshoe.png")
 plot(x,y.hs,type="l", col=mycolors[3],
      ylim=c(0,0.5))
 points(x,y.igprior,type="l",col=mycolors[4])
@@ -69,3 +80,4 @@ points(x,y.norm,type="l",col=mycolors[5])
 legend(x=1, y=0.5,
        legend=c("Horseshoe Prior", "Inverse Gamma Prior", "Standard Normal"),
        col=mycolors[3:5], lty="solid", lwd=2)
+dev.off()
