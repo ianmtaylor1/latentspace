@@ -125,18 +125,23 @@ results <- foreach(rep=reps, .combine="rbind") %dopar% {
   Y_binary_Zmultiplicative <- 1 * (eta + Z.multiplicative * gamma > 0) # Data generated WITH unobserved covariate
   
   #### Fit models and record confidence intervals
-  arglists <- list(list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-                   list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-                   list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-                   list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-                   list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-                   list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-                   list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs"),
-                   list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs"),
-                   list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs"),
-                   list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs"),
-                   list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs"),
-                   list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs")
+  arglists <- list(
+    # No rvar or cvar
+    list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
+    list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
+    list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
+    # ig prior
+    list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
+    list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
+    list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
+    # hs prior
+    list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs"),
+    list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs"),
+    list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs"),
+    # tiny prior
+    list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="tiny"),
+    list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="tiny"),
+    list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="tiny")
   )
   
   # Run the model once for each set of arguments
