@@ -81,3 +81,16 @@ legend(x=1, y=0.5,
        legend=c("Horseshoe Prior", "Inverse Gamma Prior", "Standard Normal"),
        col=mycolors[3:5], lty="solid", lwd=2)
 dev.off()
+
+
+mypng("Quantiles-boxplot.png")
+# Randomly generate a bunch of data from each prior, plot boxplots
+n <- 10000
+hssamples <- rnorm(n=n, sd=abs(rcauchy(n=n)))
+igsamples <- rnorm(n=n, sd=sqrt(1/rgamma(n=n, shape=0.5, rate=0.5)))
+
+ylim <- quantile(c(igsamples, hssamples), c(.05,.95))
+par(mfrow=c(1,2))
+boxplot(igsamples, ylim=ylim, main="Inverse-Gamma prior")
+boxplot(hssamples, ylim=ylim, main="Horseshoe prior")
+dev.off()
