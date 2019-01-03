@@ -1,5 +1,6 @@
 # Analyze the results of the first Simulation using the custom version of the code
 library(RColorBrewer)
+library(ggplot2)
 
 mypalette <- c(
   brewer.pal(10,"Paired")[c(1,3,5,9)]
@@ -8,7 +9,7 @@ mypalette <- c(
 palette(mypalette)
 
 
-results <- read.csv("Results/Global_Horseshoe_prior_results.csv", header=TRUE, stringsAsFactors=FALSE)
+results <- read.csv("Results/Prior Test Results.csv", header=TRUE, stringsAsFactors=FALSE)
 
 results[,"Covered"] <- 1 * ((results[,"TrueValue"] >= results[,"CI_low"]) & (results[,"TrueValue"] <= results[,"CI_high"]))
 results[,"CI_width"] <- results[,"CI_high"] - results[,"CI_low"]
@@ -21,14 +22,15 @@ for (r in 1:(dim(aggregate)[1])) {
                         & (results[,"Z_multiplicative"] == aggregate[r,"Z_multiplicative"])
                         & (results[,"AddRE"] == aggregate[r,"AddRE"])
                         & (results[,"MulRE"] == aggregate[r,"MulRE"])
-                        & (results[,"Variable"] == aggregate[r,"Variable"]),] # TrueValue is based on Variable
+                        & (results[,"Variable"] == aggregate[r,"Variable"]) # TrueValue is based on Variable
+                        & (results[,"prior"] == aggregate[r,"prior"]),]
   aggregate[r,"n_runs"] <- dim(subresults)[1]
   aggregate[r,"n_covered"] <- sum(subresults[,"Covered"])
   aggregate[r,"estimate_mean"] <- mean(subresults[,"Estimate"])
   aggregate[r,"estimate_var"] <- var(subresults[,"Estimate"])
   aggregate[r,"mean_CI_width"] <- mean(subresults[,"CI_width"])
   if((aggregate[r,"AddRE"] == FALSE) && (aggregate[r,"MulRE"] == FALSE)) {
-    aggregate[r,"RndEffects"] <- ""
+    aggregate[r,"RndEffects"] <- "None"
   } else if ((aggregate[r,"AddRE"] == TRUE) && (aggregate[r,"MulRE"] == FALSE)) {
     aggregate[r,"RndEffects"] <- paste("A",aggregate[r,"prior"],sep="_")
   } else if ((aggregate[r,"AddRE"] == FALSE) && (aggregate[r,"MulRE"] == TRUE)) {
@@ -42,62 +44,69 @@ for (r in 1:(dim(aggregate)[1])) {
 aggregate[,"coverage"] <- aggregate[,"n_covered"] / aggregate[,"n_runs"]
 aggregate[,"estimage_sd"] <- sqrt(aggregate[,"estimate_var"])
 
+###############################################################################
 
-# Begin creating plots
 pdf('rplot.pdf', width=10.5, height=8.5)
 
-# Plot coverage of confidence intervals
-boxplot(coverage~Var*RndEffects, data=aggregate[(aggregate[,"Z_additive"]==TRUE),],
-        col=c(1,2,3,4),
-        main="Data with Additive Unobserved Covariates", ylab="Coverage")
-abline(h=0.9,col="Black",lty=2) # HARD CODED
-boxplot(coverage~Var*RndEffects, data=aggregate[(aggregate[,"Z_multiplicative"]==TRUE),],
-        col=c(1,2,3,4),
-        main="Data With Multiplicative Unobserved Covariate", ylab="Coverage")
-abline(h=0.9,col="Black",lty=2) # HARD CODED
-boxplot(coverage~Var*RndEffects, data=aggregate[(aggregate[,"Z_multiplicative"]==FALSE)&(aggregate[,"Z_additive"]==FALSE),],
-        col=c(1,2,3,4),
-        main="Data Without Unobserved Covariates", ylab="Coverage")
-abline(h=0.9,col="Black",lty=2) # HARD CODED
+# Coverage for data with no hidden covariates: by variable and "prior"
+ggplot(
+  subset(aggregate, (Z_additive == FALSE)&(Z_multiplicative==FALSE)),
+  aes(x=RndEffects, y=coverage)
+  ) +
+  geom_boxplot(aes(col=Variable)) +
+  geom_abline(linetype=2, slope=0, intercept=.9) +
+  labs(title="Coverage with No Unobserved Covariates",
+       x="Prior", y="Coverage")
+# Coverage for data with an additive hidden covariate: by variable and "prior"
+ggplot(
+  subset(aggregate, (Z_additive == TRUE)&(Z_multiplicative==FALSE)),
+  aes(x=RndEffects, y=coverage)
+  ) +
+  geom_boxplot(aes(col=Variable)) +
+  geom_abline(linetype=2, slope=0, intercept=.9) +
+  labs(title="Coverage with an Additive Unobserved Covariate",
+       x="Prior", y="Coverage")
+# Coverage for data with a multiplicative hidden covariate: by variable and "prior"
+ggplot(
+  subset(aggregate, (Z_additive == FALSE)&(Z_multiplicative==TRUE)),
+  aes(x=RndEffects, y=coverage)
+) +
+  geom_boxplot(aes(col=Variable)) +
+  geom_abline(linetype=2, slope=0, intercept=.9) +
+  labs(title="Coverage with a Multiplicative Unobserved Covariate",
+       x="Prior", y="Coverage")
 
-# Plot means of estimates over all Reps
-boxplot(estimate_mean~Var*RndEffects, data=aggregate[(aggregate[,"Z_additive"]==TRUE),],
-        col=c(1,2,3,4),
-        main="Data with Additive Unobserved Covariates", ylab="Mean of Estimated Coefficients")
-abline(h=1,col="Black",lty=2) # HARD CODED
-abline(h=-1,col="Black",lty=2) # HARD CODED
-boxplot(estimate_mean~Var*RndEffects, data=aggregate[(aggregate[,"Z_multiplicative"]==TRUE),],
-        col=c(1,2,3,4),
-        main="Data WIith Multiplicative Unobserved Covariate", ylab="Mean of Estimated Coefficients")
-abline(h=1,col="Black",lty=2) # HARD CODED
-abline(h=-1,col="Black",lty=2) # HARD CODED
-boxplot(estimate_mean~Var*RndEffects, data=aggregate[(aggregate[,"Z_additive"]==FALSE)&(aggregate[,"Z_multiplicative"]==FALSE),],
-        col=c(1,2,3,4),
-        main="Data without Unobserved Covariates", ylab="Mean of Estimated Coefficients")
-abline(h=1,col="Black",lty=2) # HARD CODED
-abline(h=-1,col="Black",lty=2) # HARD CODED
 
-# Plot variances of estimates over all Reps
-boxplot(estimate_var~Var*RndEffects, data=aggregate[(aggregate[,"Z_additive"]==TRUE),],
-        col=c(1,2,3,4),
-        main="Data with Additive Unobserved Covariates", ylab="Variance of Estimated Coefficients")
-boxplot(estimate_var~Var*RndEffects, data=aggregate[(aggregate[,"Z_multiplicative"]==TRUE),],
-        col=c(1,2,3,4),
-        main="Data With Multiplicative Unobserved Covariate", ylab="Variance of Estimated Coefficients")
-boxplot(estimate_var~Var*RndEffects, data=aggregate[(aggregate[,"Z_additive"]==FALSE)&(aggregate[,"Z_multiplicative"]==FALSE),],
-        col=c(1,2,3,4),
-        main="Data without Unobserved Covariate", ylab="Variance of Estimated Coefficients")
-
-# Plot average CI width over all Reps
-boxplot(mean_CI_width~Var*RndEffects, data=aggregate[(aggregate[,"Z_additive"]==TRUE),],
-        col=c(1,2,3,4),
-        main="Data with Additive Unobserved Covariates", ylab="Average width of Confidence Interval")
-boxplot(mean_CI_width~Var*RndEffects, data=aggregate[(aggregate[,"Z_multiplicative"]==TRUE),],
-        col=c(1,2,3,4),
-        main="Data With Multiplicative Unobserved Covariate", ylab="Average width of Confidence Interval")
-boxplot(mean_CI_width~Var*RndEffects, data=aggregate[(aggregate[,"Z_additive"]==FALSE)&(aggregate[,"Z_multiplicative"]==FALSE),],
-        col=c(1,2,3,4),
-        main="Data without Unobserved Covariates", ylab="Average width of Confidence Interval")
+# Bias for data with no hidden covariates: by variable and "prior"
+ggplot(
+  subset(aggregate, (Z_additive == FALSE)&(Z_multiplicative==FALSE)),
+  aes(x=RndEffects, y=estimate_mean)
+  ) +
+  geom_boxplot(aes(col=Variable)) +
+  geom_abline(linetype=2, slope=0, intercept=1) +
+  geom_abline(linetype=2, slope=0, intercept=-1) +
+  labs(title="Bias with No Unobserved Covariates",
+       x="Prior", y="Mean of Estimates", )
+# Bias for data with an additive hidden covariate: by variable and "prior"
+ggplot(
+  subset(aggregate, (Z_additive == TRUE)&(Z_multiplicative==FALSE)),
+  aes(x=RndEffects, y=estimate_mean)
+  ) +
+  geom_boxplot(aes(col=Variable)) +
+  geom_abline(linetype=2, slope=0, intercept=1) +
+  geom_abline(linetype=2, slope=0, intercept=-1) +
+  labs(title="Bias with an Additive Unobserved Covariate",
+       x="Prior", y="Mean of Estimates")
+# Bias for data with a multiplicative hidden covariate: by variable and "prior"
+ggplot(
+  subset(aggregate, (Z_additive == FALSE)&(Z_multiplicative==TRUE)),
+  aes(x=RndEffects, y=estimate_mean)
+  ) +
+  geom_boxplot(aes(col=Variable)) +
+  geom_abline(linetype=2, slope=0, intercept=1) +
+  geom_abline(linetype=2, slope=0, intercept=-1) +
+  labs(title="Bias with a Multiplicative Unobserved Covariate",
+       x="Prior", y="Mean of Estimates")
 
 dev.off()
 
