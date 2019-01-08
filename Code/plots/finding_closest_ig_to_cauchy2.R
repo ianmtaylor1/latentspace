@@ -103,7 +103,7 @@ cyigl1 <- pinvgamma(x, l1opt[1], l1opt[2])
 cyigtv <- pinvgamma(x, tvopt[1], tvopt[2])
 
 l1distname <- paste("L1-optimal IG(",round(l1opt[1],digits=3),",",round(l1opt[2],digits=3),")", sep="")
-tvdistname <- paste("Total Variation-optimal IG(",round(tvopt[1],digits=3),",",round(tvopt[2],digits=3),")", sep="")
+tvdistname <- paste("L^infinity-optimal IG(",round(tvopt[1],digits=3),",",round(tvopt[2],digits=3),")", sep="")
 
 densities = data.frame(x=rep(x,4), 
                        pdf=c(ycauchy2, yig, yigl1, yigtv),
@@ -114,6 +114,7 @@ densities = data.frame(x=rep(x,4),
                                       rep(tvdistname, length(x))),
                        isnew=c(rep(FALSE,2*length(x)), rep(TRUE,2*length(x)))
                        )
+pdf("graphics/Closest_IG_to_Cauchysquared.pdf", width=10.5, height=8)
 
 ggplot(densities) +
   scale_colour_brewer(palette = "Set1") +
@@ -126,3 +127,5 @@ ggplot(densities) +
   geom_line(aes(x=x, y=cdf, color=distribution)) +
   coord_cartesian(xlim=c(0,10), ylim=c(0, 1)) +
   labs(title="Comparison of CDFs", x="", y="")
+
+dev.off()
