@@ -2,6 +2,11 @@
 library(RColorBrewer)
 library(ggplot2)
 
+setwd("C:/Users/ianmt/Documents/Git/latentspace/")
+
+infile <- "Results/Prior Test Results n=40.csv"
+outfile <- "Results/Prior Test Results n=40.pdf"
+
 mypalette <- c(
   brewer.pal(10,"Paired")[c(1,3,5,9)]
 )
@@ -9,7 +14,7 @@ mypalette <- c(
 palette(mypalette)
 
 
-results <- read.csv("Results/Prior Test Results.csv", header=TRUE, stringsAsFactors=FALSE)
+results <- read.csv(infile, header=TRUE, stringsAsFactors=FALSE)
 
 results[,"Covered"] <- 1 * ((results[,"TrueValue"] >= results[,"CI_low"]) & (results[,"TrueValue"] <= results[,"CI_high"]))
 results[,"CI_width"] <- results[,"CI_high"] - results[,"CI_low"]
@@ -46,7 +51,7 @@ aggregate[,"estimage_sd"] <- sqrt(aggregate[,"estimate_var"])
 
 ###############################################################################
 
-pdf('rplot.pdf', width=10.5, height=8.5)
+pdf(outfile, width=10.5, height=8.5)
 
 # Coverage for data with no hidden covariates: by variable and "prior"
 ggplot(
@@ -86,7 +91,7 @@ ggplot(
   geom_abline(linetype=2, slope=0, intercept=1) +
   geom_abline(linetype=2, slope=0, intercept=-1) +
   labs(title="Bias with No Unobserved Covariates",
-       x="Prior", y="Mean of Estimates", )
+       x="Prior", y="Mean of Estimates")
 # Bias for data with an additive hidden covariate: by variable and "prior"
 ggplot(
   subset(aggregate, (Z_additive == TRUE)&(Z_multiplicative==FALSE)),
