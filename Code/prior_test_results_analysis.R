@@ -4,8 +4,8 @@ library(ggplot2)
 
 setwd("C:/Users/ianmt/Documents/Git/latentspace/")
 
-infile <- "Results/Prior Test Results n=40.csv"
-outfile <- "Results/Prior Test Results n=40.pdf"
+infile <- "Results/Prior Test Results n=80.csv"
+outfile <- "Results/Prior Test Results n=80.pdf"
 
 mypalette <- c(
   brewer.pal(10,"Paired")[c(1,3,5,9)]
