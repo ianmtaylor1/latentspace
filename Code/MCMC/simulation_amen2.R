@@ -17,7 +17,7 @@ reps <- startrep:(reps + startrep - 1) # Number of times to generate Y values fo
 mcmc.iter <- 10000 # Number of iterations of the MCMC algorithm to do (after "burn") (default: 10000)
 
 intercept <- -1
-beta <- c(1,1,1) # True coefficients (not including intercept)
+beta <- c(1,1,1,1) # True coefficients (not including intercept)
 gamma <- 1       # Coefficient for unobserved data
 
 conf <- .90      # Confidence level of intervals to measure
@@ -54,6 +54,8 @@ dist <- function(x,y) {
 Xd[,,2] <- outer(locations, locations, "dist")
 # Fill third covariate with all random standard normal draws
 Xd[,,3] <- matrix(rnorm(n=n*n, mean=0, sd=1), nrow=n, ncol=n)
+# Fill fourth covariate with a random row effect
+Xd[,,4] <- matrix(rnorm(n=n, mean=0, sd=1), nrow=n, ncol=n)
 # Set all diagonals to NA
 for (i in 1:n) {
   for (k in 1:length(beta)) {
@@ -150,7 +152,8 @@ results <- foreach(rep=reps, .combine="rbind") %dopar% {
     variables <- list(list(name="intercept", value=intercept, fitname="intercept"),
                       list(name="X1_groups", value=beta[1], fitname="X1.dyad"),
                       list(name="X2_dist", value=beta[2], fitname="X2.dyad"),
-                      list(name="X3_norm", value=beta[3], fitname="X3.dyad"))
+                      list(name="X3_norm", value=beta[3], fitname="X3.dyad"),
+                      list(name="X4_row", value=beta[4], fitname="X4.dyad"))
     for (v in variables) {
       varrow <- data.frame(Run=run,
                            Rep=rep,
