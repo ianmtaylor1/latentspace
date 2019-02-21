@@ -63,7 +63,7 @@ for (i in 1:n) {
   }
 }
 
-dimnames(Xd)[[3]] <- c("X1","X2","X3")
+dimnames(Xd)[[3]] <- c("X1","X2","X3","X4")
 
 #### Generate unobserved covariate
 # ADDITIVE ROW AND COLUMN EFFECTS
