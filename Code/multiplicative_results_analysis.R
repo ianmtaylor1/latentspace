@@ -2,7 +2,7 @@
 library(RColorBrewer)
 library(ggplot2)
 
-setwd("/home/ian/Documents/Git/latentspace/")
+setwd("C:/Users/Ian Taylor/Documents/Git/latentspace")
 
 infile <- "Results/Multiplicative Results n=20.csv"
 outfile <- "Results/Multiplicative Results n=20.pdf"
@@ -34,14 +34,14 @@ for (r in 1:(dim(aggregate)[1])) {
   aggregate[r,"estimate_mean"] <- mean(subresults[,"Estimate"])
   aggregate[r,"estimate_var"] <- var(subresults[,"Estimate"])
   aggregate[r,"mean_CI_width"] <- mean(subresults[,"CI_width"])
-  if((aggregate[r,"AddRE"] == FALSE) && (aggregate[r,"MulRE"] == FALSE)) {
+  if((aggregate[r,"AddRE"] == FALSE) && (aggregate[r,"MulREdim"] == 0)) {
     aggregate[r,"RndEffects"] <- "None"
-  } else if ((aggregate[r,"AddRE"] == TRUE) && (aggregate[r,"MulRE"] == FALSE)) {
-    aggregate[r,"RndEffects"] <- paste("A",aggregate[r,"prior"],sep="_")
-  } else if ((aggregate[r,"AddRE"] == FALSE) && (aggregate[r,"MulRE"] == TRUE)) {
-    aggregate[r,"RndEffects"] <- "M"
+  } else if ((aggregate[r,"AddRE"] == TRUE) && (aggregate[r,"MulREdim"] == 0)) {
+    aggregate[r,"RndEffects"] <- "A"
+  } else if ((aggregate[r,"AddRE"] == FALSE) && (aggregate[r,"MulREdim"] > 0)) {
+    aggregate[r,"RndEffects"] <- paste("M", aggregate[r,"MulREdim"], sep="_")
   } else {
-    aggregate[r,"RndEffects"] <- "MA"
+    aggregate[r,"RndEffects"] <- paste("AM", aggregate[r,"MulREdim"], sep="_")
   }
   aggregate[r,"Var"] <- substr(aggregate[r,"Variable"],1,2)
 }
@@ -53,7 +53,7 @@ aggregate[,"estimage_sd"] <- sqrt(aggregate[,"estimate_var"])
 
 pdf(outfile, width=10.5, height=8.5)
 
-# Coverage for data with no hidden covariates: by variable and "prior"
+# Coverage for data with no hidden covariates: by variable and random effects
 ggplot(
   subset(aggregate, (Z_additive == FALSE)&(Z_multiplicative==FALSE)),
   aes(x=RndEffects, y=coverage)
@@ -61,28 +61,19 @@ ggplot(
   geom_boxplot(aes(col=Variable)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
   labs(title="Coverage with No Unobserved Covariates",
-       x="Prior", y="Coverage")
-# Coverage for data with an additive hidden covariate: by variable and "prior"
-ggplot(
-  subset(aggregate, (Z_additive == TRUE)&(Z_multiplicative==FALSE)),
-  aes(x=RndEffects, y=coverage)
-  ) +
-  geom_boxplot(aes(col=Variable)) +
-  geom_abline(linetype=2, slope=0, intercept=.9) +
-  labs(title="Coverage with an Additive Unobserved Covariate",
-       x="Prior", y="Coverage")
-# Coverage for data with a multiplicative hidden covariate: by variable and "prior"
+       x="Random Effects", y="Coverage")
+# Coverage for data with a multiplicative hidden covariate: by variable and random effects
 ggplot(
   subset(aggregate, (Z_additive == FALSE)&(Z_multiplicative==TRUE)),
   aes(x=RndEffects, y=coverage)
 ) +
   geom_boxplot(aes(col=Variable)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
-  labs(title="Coverage with a Multiplicative Unobserved Covariate",
-       x="Prior", y="Coverage")
+  labs(title="Coverage with a 2-dimensional Multiplicative Unobserved Covariate",
+       x="Random Effects", y="Coverage")
 
 
-# Bias for data with no hidden covariates: by variable and "prior"
+# Bias for data with no hidden covariates: by variable and random effects
 ggplot(
   subset(aggregate, (Z_additive == FALSE)&(Z_multiplicative==FALSE)),
   aes(x=RndEffects, y=estimate_mean)
@@ -91,18 +82,8 @@ ggplot(
   geom_abline(linetype=2, slope=0, intercept=1) +
   geom_abline(linetype=2, slope=0, intercept=-1) +
   labs(title="Bias with No Unobserved Covariates",
-       x="Prior", y="Mean of Estimates")
-# Bias for data with an additive hidden covariate: by variable and "prior"
-ggplot(
-  subset(aggregate, (Z_additive == TRUE)&(Z_multiplicative==FALSE)),
-  aes(x=RndEffects, y=estimate_mean)
-  ) +
-  geom_boxplot(aes(col=Variable)) +
-  geom_abline(linetype=2, slope=0, intercept=1) +
-  geom_abline(linetype=2, slope=0, intercept=-1) +
-  labs(title="Bias with an Additive Unobserved Covariate",
-       x="Prior", y="Mean of Estimates")
-# Bias for data with a multiplicative hidden covariate: by variable and "prior"
+       x="Random Effects", y="Mean of Estimates")
+# Bias for data with a multiplicative hidden covariate: by variable and random effects
 ggplot(
   subset(aggregate, (Z_additive == FALSE)&(Z_multiplicative==TRUE)),
   aes(x=RndEffects, y=estimate_mean)
@@ -110,8 +91,8 @@ ggplot(
   geom_boxplot(aes(col=Variable)) +
   geom_abline(linetype=2, slope=0, intercept=1) +
   geom_abline(linetype=2, slope=0, intercept=-1) +
-  labs(title="Bias with a Multiplicative Unobserved Covariate",
-       x="Prior", y="Mean of Estimates")
+  labs(title="Bias with a 2-dimensional Multiplicative Unobserved Covariate",
+       x="Random Effects", y="Mean of Estimates")
 
 dev.off()
 
