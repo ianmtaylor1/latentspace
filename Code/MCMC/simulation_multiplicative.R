@@ -1,4 +1,4 @@
-library(amen2)
+library(amen)
 library(doParallel)
 library(batch)
 
@@ -73,13 +73,10 @@ Z.additive <- outer(true.a, true.b, "+")
 diag(Z.additive) <- NA
 
 #### Generate unobserved covariate
-# Similar to the shared class but with three classes (b/c why not)
-uo_groups <- sample(0:1, n, TRUE) * 2 - 1
-if (all(uo_groups == -1) || all(uo_groups == 1)) {
-  k <- sample(1:n, 1)[1]
-  uo_groups[k] <- -uo_groups[k]
-  X}
-Z.multiplicative <- outer(uo_groups, uo_groups, "*")
+# 2-dimensional multiplicative effects
+true.u <- matrix(rnorm(n=2*n), ncol=2)
+true.v <- matrix(rnorm(n=2*n), nrow=2)
+Z.multiplicative <- true.u %*% true.v
 diag(Z.multiplicative) <- NA
 
 
@@ -103,7 +100,7 @@ results <- foreach(rep=reps, .combine="rbind") %dopar% {
                            Z_multiplicative=logical(),
                            prior=character(),
                            AddRE=logical(),
-                           MulRE=logical(),
+                           MulREdim=integer(),
                            Variable=character(),
                            TrueValue=double(),
                            Estimate=double(),
@@ -128,27 +125,21 @@ results <- foreach(rep=reps, .combine="rbind") %dopar% {
   
   #### Fit models and record confidence intervals
   arglists <- list(
-    # No rvar or cvar
-    list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-    list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-    list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-    # ig prior
-    list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-    list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-    list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="ig"),
-    # hs prior
-    list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs"),
-    list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs"),
-    list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="hs"),
-    # tiny prior
-    list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="tiny"),
-    list(Y=Y_binary_Zadditive, Z_additive=TRUE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="tiny"),
-    list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=TRUE, cvar=TRUE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter, prior="tiny")
+    # No Z, no multiplicative latent space
+    list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter),
+    # Z, but no multiplicative latent space
+    list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=0, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter),
+    # No Z, WITH multiplicative latent space
+    list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=1, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter),
+    list(Y=Y_binary_noZ, Z_additive=FALSE, Z_multiplicative=FALSE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=2, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter),
+    # Z, WITH multiplicative latent space
+    list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=1, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter),
+    list(Y=Y_binary_Zmultiplicative, Z_additive=FALSE, Z_multiplicative=TRUE, Xdyad=Xd, rvar=FALSE, cvar=FALSE, dcor=FALSE, R=2, plot=FALSE, print=FALSE, model="bin", gof=FALSE, nscan=mcmc.iter)
   )
   
   # Run the model once for each set of arguments
   for (args in arglists) {
-    fit <- do.call(ame2, args[c("Y","Xdyad","model","rvar","cvar","print","prior")])
+    fit <- do.call(ame, args[c("Y","Xdyad","rvar","cvar","dcor","R","plot","print","model","gof","nscan")])
     variables <- list(list(name="intercept", value=intercept, fitname="intercept"),
                       list(name="X1_groups", value=beta[1], fitname="X1.dyad"),
                       list(name="X2_dist", value=beta[2], fitname="X2.dyad"),
@@ -161,9 +152,8 @@ results <- foreach(rep=reps, .combine="rbind") %dopar% {
                            Yseed=yseed,
                            Z_additive=args$Z_additive,
                            Z_multiplicative=args$Z_multiplicative,
-                           prior=args$prior,
                            AddRE=args$rvar,
-                           MulRE=(args$R > 0),
+                           MulREdim=args$R,
                            Variable=v$name,
                            TrueValue=v$value,
                            Estimate=mean(fit$BETA[,v$fitname]),
