@@ -4,8 +4,8 @@ library(ggplot2)
 
 setwd("/home/ian/Documents/Git/latentspace/jsmposter")
 
-infile <- "data/JSM Results n=20.csv"
-outfile <- "JSM Results n=20.pdf"
+infile <- "data/JSM Results n=80.csv"
+outfile <- "JSM Results n=80.pdf"
 
 mypalette <- c(
   brewer.pal(10,"Paired")[c(1,3,5,9)]

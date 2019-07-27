@@ -1,8 +1,8 @@
 library(foreach)
 
-indir <- "data/jsm20"
+indir <- "data/jsm80"
 
-outfile <- "JSM Results n=20.csv"
+outfile <- "data/JSM Results n=80.csv"
 
 alldata <- foreach (f=list.files(indir,pattern=".*\\.csv"), .combine="rbind") %do% {
   read.csv(file.path(indir, f), stringsAsFactors=FALSE)
