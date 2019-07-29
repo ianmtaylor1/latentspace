@@ -4,8 +4,8 @@ library(ggplot2)
 
 setwd("/home/ian/Documents/Git/latentspace/jsmposter")
 
-infile <- "data/JSM Results n=80.csv"
-outfile <- "JSM Results n=80.pdf"
+infile <- "data/JSM Results n=40.csv"
+outfile <- "JSM Results n=40.pdf"
 
 mypalette <- c(
   brewer.pal(10,"Paired")[c(1,3,5,9)]
@@ -20,6 +20,7 @@ results[,"Covered"] <- 1 * ((results[,"TrueValue"] >= results[,"CI_low"]) & (res
 results[,"CI_width"] <- results[,"CI_high"] - results[,"CI_low"]
 
 aggregate <- unique(results[,c("Run","Xseed","Z_additive","Z_multiplicative","AddRE","Variable","TrueValue","prior","projected")])
+aggregate[,"Prior"] <- "ERR"
 
 for (r in 1:(dim(aggregate)[1])) {
   subresults <- results[(results[,"Run"] == aggregate[r,"Run"]) # Xseed is based on Run
@@ -38,20 +39,22 @@ for (r in 1:(dim(aggregate)[1])) {
     aggregate[r,"RndEffects"] <- "None"
   } else {
     aggregate[r,"RndEffects"] <- paste("A",aggregate[r,"prior"],sep="_")
+    aggregate[r,"Prior"] <- ifelse(aggregate[r,"prior"]=="IG","Inverse Wishart",ifelse(aggregate[r,"prior"]=="HC","Half Cauchy","ERR"))
   }
-  aggregate[r,"Var"] <- ifelse(aggregate[r,"Variable"] == "intercept", "\\beta_0", paste("\\beta_",substr(aggregate[r,"Variable"],2,2),sep=""))
+  aggregate[r,"Var"] <- ifelse(aggregate[r,"Variable"] == "intercept", "beta[0]", paste("beta[",substr(aggregate[r,"Variable"],2,2),"]",sep=""))
 }
 
 aggregate[,"coverage"] <- aggregate[,"n_covered"] / aggregate[,"n_runs"]
 aggregate[,"estimage_sd"] <- sqrt(aggregate[,"estimate_var"])
 aggregate$RndEffects <- factor(aggregate$RndEffects, levels=c("None","A_IG","A_HC"))
 aggregate$projected <- factor(aggregate$projected, levels=c(FALSE, TRUE))
+aggregate$Prior <- factor(aggregate$Prior, levels=c("Inverse Wishart", "Half Cauchy"))
 
 
 
 ###############################################################################
 
-pdf(outfile, width=9, height=6)
+pdf(outfile, width=9, height=9)
 
 
 # Coverage for when there is no nodal variation - priors
@@ -59,13 +62,14 @@ ggplot(
   subset(aggregate, (Z_additive == FALSE)&(RndEffects!="None")&(projected==FALSE)),
   aes(x=Var, y=coverage)
   ) +
-  geom_boxplot(aes(col=RndEffects)) + guides(color=FALSE) +
+  geom_boxplot(aes(col=Prior)) + #guides(color=FALSE) +
   coord_cartesian(ylim=c(0.5,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
   labs(title="Prior Comparison: No Nodal Variation",
        x="", y="Coverage") +
-  theme(text=element_text(size=24)) +
-  scale_color_manual(values=brewer.pal(10,"Paired")[c(1,3)])
+  theme(text=element_text(size=24), legend.position="bottom") +
+  scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
+  scale_x_discrete(labels=function(x) {parse(text=x)})
 
 
 # Coverage for when there is nodal variation - priors
@@ -73,26 +77,28 @@ ggplot(
   subset(aggregate, (Z_additive == TRUE)&(RndEffects!="None")&(projected==FALSE)),
   aes(x=Var, y=coverage)
   ) +
-  geom_boxplot(aes(col=RndEffects)) + guides(color=FALSE) +
+  geom_boxplot(aes(col=Prior)) + #guides(color=FALSE) +
   coord_cartesian(ylim=c(0.5,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
   labs(title="Prior Comparison: Nodal Variation",
        x="", y="Coverage") +
-  theme(text=element_text(size=24)) +
-  scale_color_manual(values=brewer.pal(10,"Paired")[c(1,3)])
+  theme(text=element_text(size=24), legend.position="bottom") +
+  scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
+  scale_x_discrete(labels=function(x) {parse(text=x)})
 
 # Coverage for when there is no nodal variation - projections
 ggplot(
   subset(aggregate, (Z_additive == FALSE)&(RndEffects!="None")&(RndEffects=="A_IG")),
   aes(x=Var, y=coverage)
   ) +
-  geom_boxplot(aes(col=projected)) + guides(color=FALSE) +
+  geom_boxplot(aes(col=projected)) + #guides(color=FALSE) +
   coord_cartesian(ylim=c(0.5,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
   labs(title="Projection Comparison: No Nodal Variation",
        x="", y="Coverage") +
-  theme(text=element_text(size=24)) +
-  scale_color_manual(values=brewer.pal(10,"Paired")[c(1,5)])
+  theme(text=element_text(size=24), legend.position="bottom") +
+  scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
+  scale_x_discrete(labels=function(x) {parse(text=x)})
 
 
 # Coverage for when there is nodal variation - projections
@@ -100,13 +106,14 @@ ggplot(
   subset(aggregate, (Z_additive == TRUE)&(RndEffects!="None")&(RndEffects=="A_IG")),
   aes(x=Var, y=coverage)
   ) +
-  geom_boxplot(aes(col=projected)) + guides(color=FALSE) +
+  geom_boxplot(aes(col=projected)) + #guides(color=FALSE) +
   coord_cartesian(ylim=c(0.5,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
   labs(title="Projection Comparison: Nodal Variation",
        x="", y="Coverage") +
-  theme(text=element_text(size=24)) +
-  scale_color_manual(values=brewer.pal(10,"Paired")[c(1,5)])
+  theme(text=element_text(size=24), legend.position="bottom") +
+  scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
+  scale_x_discrete(labels=function(x) {parse(text=x)})
 
 
 
