@@ -27,12 +27,47 @@ eta.prime <- function(alpha, sigma, eta, I, P) {
       sqrt(alpha) * eta.par / sqrt(sum(eta.par^2))) * sigma
 }
 
+genX <- function(n) {
+  #### Generate design matrix X for dyad covariates
+  # Start empty
+  Xd <- array(0, dim=c(n,n,4) )
+  # Fill first covariate with binary indicator of shared class
+  groups <- sample(0:1, n, TRUE) * 2 - 1
+  if (all(groups == 1) || all(groups == -1)) {
+    k <- sample(1:n, 1)[1]
+    groups[k] <- -groups[k]
+  }
+  Xd[,,1] <- outer(groups, groups, "*")
+  # Fill second covariate with "distances" between normally distributed coordinates
+  locations <- rnorm(n=n, mean=0, sd=1)
+  dist <- function(x,y) {
+    abs(x - y)
+  }
+  Xd[,,2] <- outer(locations, locations, "dist")
+  # Fill third covariate with all random standard normal draws
+  Xd[,,3] <- matrix(rnorm(n=n*n, mean=0, sd=1), nrow=n, ncol=n)
+  # Fill fourth covariate with a random row effect
+  Xd[,,4] <- matrix(rnorm(n=n, mean=0, sd=1), nrow=n, ncol=n)
+  # Set all diagonals to NA
+  #for (i in 1:n) {
+  #  for (k in 1:length(beta)) {
+  #    Xd[i,i,k] <- NA
+  #  }
+  #}
+  
+  dimnames(Xd)[[3]] <- c("X1","X2","X3","X4")
+  
+  mX <- apply(Xd,3,c)
+  
+  return(cbind(1, mX))
+}
+
 ########################################
 
 results <- NULL
 
 for (gen in 1:num.X) {
-  X <- cbind(1, matrix(rnorm(4*n^2), ncol=4, nrow=n^2))
+  X <- genX(n)
   
   A <- matrix(0, ncol=n, nrow=n^2)
   B <- matrix(0, ncol=n, nrow=n^2)
@@ -45,38 +80,33 @@ for (gen in 1:num.X) {
   AB <- cbind(A,B)
   
   # Various projection matrices onto ...
+  I <- diag(n^2)                             #R^(n^2)
   PX <- X %*% solve(t(X) %*% X) %*% t(X)     # The column space of X
-  PA <- A %*% solve(t(A) %*% A) %*% t(A)     # The column space of A
-  PB <- B %*% solve(t(B) %*% B) %*% t(B)     # The column space of B
   PAB <- AB %*% ginv(t(AB) %*% AB) %*% t(AB) # The column space of AB 
-  I <- diag(n^2)                             # R^(n^2)
-  PAX <- matpow(PA %*% PX, 100)              # (C(A) intersect C(X))
-  PBX <- matpow(PB %*% PX, 100)              # (C(B) intersect C(X))
-  PABX <- matpow(PAB %*% PX, 100)            # (C(AB) intersect C(X))
-  PXA <- (PA %*% X) %*% ginv(t(X) %*% PA %*% X) %*% t(PA %*% X) # The column space of PA%*%X
-  PXB <- (PB %*% X) %*% ginv(t(X) %*% PB %*% X) %*% t(PB %*% X) # The column space of PB%*%X
-  PXAB <- (PAB %*% X) %*% ginv(t(X) %*% PAB %*% X) %*% t(PAB %*% X) # The column space of PAB%*%X
+  PABX <- matpow(PAB %*% PX, 200)            # (C(AB) intersect C(X))
   
   for (rep in 1:reps.per.X) {
-    eta <- A %*% rnorm(n)
+    eta <- AB %*% rnorm(2*n)
     
     for (alpha in alpha.list) {
       for (sigma in sigma.list) {
         eta.0 <- eta.prime(alpha, sigma, eta, I, PX)
-        eta.1 <- PA %*% eta.0
         eta.2 <- eta.prime(alpha, sigma, eta, PAB, PABX)
-        eta.3 <- eta.prime(alpha, sigma, eta, PAB, PXAB)
         
         results <- rbind(results,
                          list(alpha=alpha, sigma=sigma, rep=rep, Xgen=gen,
                               propvar.0=sum((PX%*%eta.0)^2)/sum(eta.0^2),
-                              propvar.1=sum((PX%*%eta.1)^2)/sum(eta.1^2),
                               propvar.2=sum((PX%*%eta.2)^2)/sum(eta.2^2),
-                              propvar.3=sum((PX%*%eta.3)^2)/sum(eta.3^2),
                               mag.0=sqrt(sum(eta.0^2)),
-                              mag.1=sqrt(sum(eta.1^2)),
                               mag.2=sqrt(sum(eta.2^2)),
-                              mag.3=sqrt(sum(eta.3^2)))
+                              rhoX1.0=cor(X[,2], eta.0),
+                              rhoX2.0=cor(X[,3], eta.0),
+                              rhoX3.0=cor(X[,4], eta.0),
+                              rhoX4.0=cor(X[,5], eta.0),
+                              rhoX1.2=cor(X[,2], eta.2),
+                              rhoX2.2=cor(X[,3], eta.2),
+                              rhoX3.2=cor(X[,4], eta.2),
+                              rhoX4.2=cor(X[,5], eta.2))
         )
       }
     }
