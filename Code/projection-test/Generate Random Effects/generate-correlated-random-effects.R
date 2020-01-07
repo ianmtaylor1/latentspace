@@ -1,11 +1,13 @@
 library(MASS)
 library(foreach)
 
+outfile <- "Gen-rnd-effect-correlation-plots.pdf"
+
 n <- 20
-reps.per.X <- 10
+reps.per.X <- 3
 num.X <- 4
 alpha.list <- seq(0,1,by=.1)
-sigma.list <- 1:5
+sigma.list <- 1:2
 
 ########################################
 
@@ -84,6 +86,7 @@ results <- foreach(gen = 1:num.X, .combine="rbind") %do% {
 }
 results <- as.data.frame(results)
 
+pdf(outfile, width=8, height=6)
 
 par(mfrow=c(2,2))
 # Canonical correlation
@@ -116,5 +119,5 @@ for (i in 1:num.X) {
 }
 
 
-
+dev.off()
 
