@@ -21,24 +21,26 @@ Xc <- data.matrix(data.frame(MedianOdds=Xc.odds[countries.in.final,"Median16"]))
 
 res.no.re <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
                    Xcol=Xc, Xdyad=Xd, 
-                   family="frn", rvar=FALSE, cvar=FALSE)
+                   family="frn", rvar=FALSE, cvar=FALSE, dcor=FALSE)
 
 res <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
                    Xcol=Xc, Xdyad=Xd, 
-                   family="frn")
+                   family="frn", dcor=FALSE)
 
 res.hc <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
                    Xcol=Xc, Xdyad=Xd, 
-                   family="frn", halfcauchy=TRUE)
+                   family="frn", halfcauchy=TRUE, dcor=FALSE)
 
 res.proj <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
                    Xcol=Xc, Xdyad=Xd,
-                   family="frn", halfcauchy=TRUE, project=TRUE)
+                   family="frn", halfcauchy=TRUE, project=TRUE, dcor=FALSE)
 
 # Summarize results (BETA)
+colMeans(res.no.re$BETA)
+apply(res.no.re$BETA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.975))
 colMeans(res$BETA)
 apply(res$BETA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.975))
 colMeans(res.hc$BETA)
 apply(res.hc$BETA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.975))
-colMeans(res.proj$BETA)
-apply(res.proj$BETA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.975))
+colMeans(res.proj$DELTA)
+apply(res.proj$DELTA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.975))
