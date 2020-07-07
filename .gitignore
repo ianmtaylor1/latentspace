@@ -1,7 +1,6 @@
 Notes/*.aux
 Notes/*.log
-/Code/.Rhistory
-/Results/.Rhistory
 .Rproj.user
 packrat/lib*/
 packrat/src/
+**/.Rhistory
