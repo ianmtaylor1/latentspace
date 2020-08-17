@@ -26,47 +26,57 @@ dimnames(Xd)[[3]] <- list("Contig")
 #colnames(Xc) <- c(colnames(Xc.gender), "MedianOdds")
 Xc <- data.matrix(data.frame(MedianOdds=Xc.odds[countries.in.final,"Median16"]))
 
-res.no.re <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
-                   Xcol=Xc, Xdyad=Xd, 
-                   family="rrl", rvar=FALSE, cvar=FALSE, dcor=FALSE,
-                   plot=FALSE, gof=FALSE, print=TRUE,
-                   nscan=500000, burn=10000, odens=500)
+if (file.exists("2015results/no-rnd-effects.RDS")) {
+  res.no.re <- readRDS("2015results/no-rnd-effects.RDS")
+} else {
+  res.no.re <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
+                           Xcol=Xc, Xdyad=Xd, 
+                           family="rrl", rvar=FALSE, cvar=FALSE, dcor=FALSE,
+                           plot=FALSE, gof=FALSE, print=TRUE,
+                           nscan=500000, burn=10000, odens=500)
+  saveRDS(res.no.re, "2015results/no-rnd-effects.RDS")
+}
 
-res <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
-                   Xcol=Xc, Xdyad=Xd, 
-                   family="rrl", rvar=FALSE, cvar=TRUE, dcor=FALSE,
-                   plot=FALSE, gof=FALSE, print=TRUE,
-                   nscan=500000, burn=10000, odens=500)
+if (file.exists("2015results/standard.RDS")) {
+  res <- readRDS("2015results/standard.RDS")
+} else {
+  res <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
+                     Xcol=Xc, Xdyad=Xd, 
+                     family="rrl", rvar=FALSE, cvar=TRUE, dcor=FALSE,
+                     plot=FALSE, gof=FALSE, print=TRUE,
+                     nscan=500000, burn=10000, odens=500)
+  saveRDS(res, "2015results/standard.RDS")
+}
 
-#res.hc <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
-#                   Xcol=Xc, Xdyad=Xd, 
-#                   family="rrl", rvar=FALSE, cvar=TRUE, halfcauchy=TRUE, dcor=FALSE,
-#                   plot=FALSE, gof=FALSE, print=FALSE,
-#                   nscan=500000, burn=10000, odens=500)
+if (file.exists("2015results/hc-and-projection.RDS")) {
+  res.proj <- readRDS("2015results/hc-and-projection.RDS")
+} else {
+  res.proj <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
+                          Xcol=Xc, Xdyad=Xd,
+                          family="rrl", rvar=FALSE, cvar=TRUE, halfcauchy=TRUE, project=TRUE, dcor=FALSE,
+                          plot=FALSE, gof=FALSE, print=TRUE,
+                          nscan=500000, burn=10000, odens=500)
+  saveRDS(res.proj, "2015results/hc-and-projection.RDS")
+}
 
-res.proj <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
-                   Xcol=Xc, Xdyad=Xd,
-                   family="rrl", rvar=FALSE, cvar=TRUE, halfcauchy=TRUE, project=TRUE, dcor=FALSE,
-                   plot=FALSE, gof=FALSE, print=TRUE,
-                   nscan=500000, burn=10000, odens=500)
 
 # Summarize results (BETA)
-cat("No Random Effects\n")
+cat("No Random Effects\n\n")
 colMeans(res.no.re$BETA)
 effectiveSize(res.no.re$BETA)
 apply(res.no.re$BETA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.975))
 
-cat("Standard Random Effects\n")
+cat("Standard Random Effects\n\n")
 colMeans(res$BETA)
 effectiveSize(res$BETA)
 apply(res$BETA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.975))
 
-cat("With Half-Cauchy")
+cat("With Half-Cauchy\n\n")
 colMeans(res.proj$BETA)
 effectiveSize(res.proj$BETA)
 apply(res.proj$BETA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.975))
 
-cat("With HC and Projected")
+cat("With HC and Projected\n\n")
 colMeans(res.proj$DELTA)
 effectiveSize(res.proj$DELTA)
 apply(res.proj$DELTA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.975))
