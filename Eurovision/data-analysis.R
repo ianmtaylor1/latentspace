@@ -2,6 +2,8 @@
 
 library(amenhs)
 library(coda)
+library(ggplot2)
+library(ggrepel)
 
 # Read in all the csv files with response and covariates
 Y <- read.csv("2015data/votes-ranks.csv", row.names=1)
@@ -26,6 +28,11 @@ dimnames(Xd)[[3]] <- list("Contig")
 #colnames(Xc) <- c(colnames(Xc.gender), "MedianOdds")
 Xc <- data.matrix(data.frame(MedianOdds=Xc.odds[countries.in.final,"Median16"]))
 
+# Run specifics
+nscan <- 1000000
+burn <- 10000
+odens <- 500
+
 if (file.exists("2015results/no-rnd-effects.RDS")) {
   res.no.re <- readRDS("2015results/no-rnd-effects.RDS")
 } else {
@@ -33,7 +40,7 @@ if (file.exists("2015results/no-rnd-effects.RDS")) {
                            Xcol=Xc, Xdyad=Xd, 
                            family="rrl", rvar=FALSE, cvar=FALSE, dcor=FALSE,
                            plot=FALSE, gof=FALSE, print=TRUE,
-                           nscan=500000, burn=10000, odens=500)
+                           nscan=nscan, burn=burn, odens=odens)
   saveRDS(res.no.re, "2015results/no-rnd-effects.RDS")
 }
 
@@ -44,7 +51,7 @@ if (file.exists("2015results/standard.RDS")) {
                      Xcol=Xc, Xdyad=Xd, 
                      family="rrl", rvar=FALSE, cvar=TRUE, dcor=FALSE,
                      plot=FALSE, gof=FALSE, print=TRUE,
-                     nscan=500000, burn=10000, odens=500)
+                     nscan=nscan, burn=burn, odens=odens)
   saveRDS(res, "2015results/standard.RDS")
 }
 
@@ -55,10 +62,11 @@ if (file.exists("2015results/hc-and-projection.RDS")) {
                           Xcol=Xc, Xdyad=Xd,
                           family="rrl", rvar=FALSE, cvar=TRUE, halfcauchy=TRUE, project=TRUE, dcor=FALSE,
                           plot=FALSE, gof=FALSE, print=TRUE,
-                          nscan=500000, burn=10000, odens=500)
+                          nscan=nscan, burn=burn, odens=odens)
   saveRDS(res.proj, "2015results/hc-and-projection.RDS")
 }
 
+################################################################################
 
 # Summarize results (BETA)
 cat("No Random Effects\n\n")
@@ -80,3 +88,95 @@ cat("With HC and Projected\n\n")
 colMeans(res.proj$DELTA)
 effectiveSize(res.proj$DELTA)
 apply(res.proj$DELTA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.975))
+
+
+################################################################################
+
+# Long form data format
+
+# Posterior samples for projected/not projected odds effect
+oddseffect.samples <- data.frame(
+  Projected=c(rep("Projected", nrow(res.proj$DELTA)), 
+              rep("Not Projected", nrow(res.proj$BETA)),
+              rep("No Random Effects", nrow(res.no.re$BETA))),
+  Samples=c(res.proj$DELTA[,"MedianOdds.col"], 
+            res.proj$BETA[,"MedianOdds.col"],
+            res.no.re$BETA[,"MedianOdds.col"]),
+  stringsAsFactors=FALSE)
+oddseffect.ci <- data.frame(
+  Projected=c("Projected","Not Projected", "No Random Effects"),
+  Mean=c(mean(res.proj$DELTA[,"MedianOdds.col"]), 
+         mean(res.proj$BETA[,"MedianOdds.col"]),
+         mean(res.no.re$BETA[,"MedianOdds.col"])),
+  Low=c(quantile(res.proj$DELTA[,"MedianOdds.col"], probs=0.05), 
+        quantile(res.proj$BETA[,"MedianOdds.col"], probs=0.05),
+        quantile(res.no.re$BETA[,"MedianOdds.col"], probs=0.05)),
+  High=c(quantile(res.proj$DELTA[,"MedianOdds.col"], probs=0.95), 
+         quantile(res.proj$BETA[,"MedianOdds.col"], probs=0.95),
+         quantile(res.no.re$BETA[,"MedianOdds.col"], probs=0.95)),
+  stringsAsFactors=FALSE
+)
+# Posterior samples for projected not/projected contiguity effect
+contigeffect.samples <- data.frame(
+  Projected=c(rep("Projected", nrow(res.proj$DELTA)), 
+              rep("Not Projected", nrow(res.proj$BETA)),
+              rep("No Random Effects", nrow(res.no.re$BETA))),
+  Samples=c(res.proj$DELTA[,".dyad"], 
+            res.proj$BETA[,".dyad"], 
+            res.no.re$BETA[,".dyad"]),
+  stringsAsFactors=FALSE)
+contigeffect.ci <- data.frame(
+  Projected=c("Projected","Not Projected","No Random Effects"),
+  Mean=c(mean(res.proj$DELTA[,".dyad"]), 
+         mean(res.proj$BETA[,".dyad"]),
+         mean(res.no.re$BETA[,".dyad"])),
+  Low=c(quantile(res.proj$DELTA[,".dyad"], probs=0.05), 
+        quantile(res.proj$BETA[,".dyad"], probs=0.05),
+        quantile(res.no.re$BETA[,".dyad"], probs=0.05)),
+  High=c(quantile(res.proj$DELTA[,".dyad"], probs=0.95), 
+         quantile(res.proj$BETA[,".dyad"], probs=0.95),
+         quantile(res.no.re$BETA[,".dyad"], probs=0.95)),
+  stringsAsFactors=FALSE
+)
+# Posterior means for column random effects with/without projections
+BPM <- data.frame(
+  Projected=res.proj$BPM.ORTH,
+  NotProjected=res.proj$BPM,
+  Country=names(res.proj$BPM),
+  stringsAsFactors=FALSE
+)
+BPM$AbsChg <- abs(BPM$Projected - BPM$NotProjected)
+BPM$ChgRnk <- rank(BPM$AbsChg)
+BPM$TopMovers <- ifelse(BPM$ChgRnk >= 23, BPM$Country, NA)
+
+# Plot posterior distributions
+
+pdf("2015results/Eurovision-results-plots.pdf", width=8, height=8)
+
+# Odds effect posterior KDEs and intervals
+ggplot(oddseffect.samples, aes(x=Samples, fill=Projected)) + 
+  geom_density(alpha=0.25) +
+  ggtitle("Betting Odds", subtitle="Posterior KDEs")
+ggplot(oddseffect.ci, aes(x=Projected, y=Mean, ymin=Low, ymax=High)) +
+  geom_errorbar(width=0.2) +
+  geom_point(size=1.5) +
+  ggtitle("Betting Odds", subtitle="Posterior means and 90% credible intervals")
+# Contiguity effect posterior KDEs and intervals
+ggplot(contigeffect.samples, aes(x=Samples, fill=Projected)) + 
+  geom_density(alpha=0.25) +
+  ggtitle("Country Contiguity", subtitle="Posterior KDEs")
+ggplot(contigeffect.ci, aes(x=Projected, y=Mean, ymin=Low, ymax=High)) +
+  geom_errorbar(width=0.2) +
+  geom_point(size=1.5) +
+  ggtitle("Country Contiguity", subtitle="Posterior means and 90% credible intervals")
+# Posterior mean of column effect scatterplots
+ggplot(BPM, aes(x=NotProjected, y=Projected)) + 
+  geom_point() +
+  ggtitle("Column Random Effects", subtitle="Posterior means before and after projections") +
+  geom_text_repel(aes(label=TopMovers), size=3.5) +
+  geom_abline(slope=1, intercept=0, color="red")
+# Absolute change by country
+ggplot(BPM, aes(x=Country, y=AbsChg)) + 
+  geom_bar(stat="identity")
+
+dev.off()
