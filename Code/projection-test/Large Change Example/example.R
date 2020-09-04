@@ -13,7 +13,8 @@ gencancor <- function(X, Y, rho) {
 }
 
 # Repeatability
-set.seed(12345)
+base.seed <- 12345
+set.seed(base.seed)
 
 # Parameters for generating data
 n <- 27
@@ -38,9 +39,10 @@ burn<-5000
 thin<-50
 
 # How many reps to generate Y for
-reps <- 1
+reps <- 20
 
-#for (rep in 1:reps) {
+for (rep in 1:reps) {
+  set.seed((reps+1)*base.seed + rep)
   # Response variable
   Y <- (intercept + outer(c(Xr %*% beta.r), c(Xc %*% beta.c), "+") + outer(a.true, b.true, "+") + matrix(rnorm(n*n), nrow=n) >= 0)
   
@@ -57,5 +59,5 @@ reps <- 1
   # 1. Difference in beta estimates
   # 2. Difference in random effect estimates
   # 3. Difference in random effect variance component estimates
-#}
+}
 
