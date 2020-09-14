@@ -42,7 +42,7 @@ pc <- pc.all[(run-1) %% 6 + 1]
 set.corr <- corr.all[(run-1) %% 6 + 1]
 
 # Repeatability
-base.seed <- 123
+base.seed <- 111
 
 set.seed(base.seed * 1000 + run)
 
@@ -89,8 +89,8 @@ output <- foreach(rep=1:reps, .combine="rbind") %do% {
   }
   for (j in 1:pc) {
     ret[[paste0("beta_col",j,"_mean")]] <- mean(res$BETA[,j+pr+1])
-    ret[[paste0("beta_row",j,"_5q")]] <- quantile(res$BETA[,j+pr+1], .05)
-    ret[[paste0("beta_row",j,"_95q")]] <- quantile(res$BETA[,j+pr+1], .95)
+    ret[[paste0("beta_col",j,"_5q")]] <- quantile(res$BETA[,j+pr+1], .05)
+    ret[[paste0("beta_col",j,"_95q")]] <- quantile(res$BETA[,j+pr+1], .95)
   }
   # 2. Projected estimates and CI's
   ret[["delta_intercept_mean"]] <- mean(res$DELTA[,1])
@@ -103,8 +103,8 @@ output <- foreach(rep=1:reps, .combine="rbind") %do% {
   }
   for (j in 1:pc) {
     ret[[paste0("delta_col",j,"_mean")]] <- mean(res$DELTA[,j+pr+1])
-    ret[[paste0("delta_row",j,"_5q")]] <- quantile(res$DELTA[,j+pr+1], .05)
-    ret[[paste0("delta_row",j,"_95q")]] <- quantile(res$DELTA[,j+pr+1], .95)
+    ret[[paste0("delta_col",j,"_5q")]] <- quantile(res$DELTA[,j+pr+1], .05)
+    ret[[paste0("delta_col",j,"_95q")]] <- quantile(res$DELTA[,j+pr+1], .95)
   }
   # 2. Difference in random effect estimates
   ret[["relmove_a_proj"]] <- sum((res$APM - res$APM.ORTH)^2)/sum(res$APM^2)
