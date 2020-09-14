@@ -18,7 +18,7 @@ gencancor <- function(X, Y, rho) {
 
 # Parse command line arguments into the script
 # First: set the defaults
-run <- 1         # Which run # is this? 1,2,3,...
+run <- 5         # Which run # is this? 1,2,3,...
 reps <- 20       # How many times to generate Y and fit?
 #pr <- 1          # How many fixed row covariates?
 #pc <- 1          # How many fixed column covariates?
@@ -64,6 +64,7 @@ thin<-50
 
 
 output <- foreach(rep=1:reps, .combine="rbind") %do% {
+  cat("Rep",rep,"\n")
   
   set.seed((base.seed * 1000 + run) * 10000 + rep)
   
@@ -73,10 +74,10 @@ output <- foreach(rep=1:reps, .combine="rbind") %do% {
   # Run the MCMC
   res <- ame(Y, Xrow=Xr, Xcol=Xc, family="bin", halfcauchy=TRUE, project=TRUE, dcor=FALSE,
              nscan=iter, burn=burn, odens=thin,
-             print=TRUE, plot=FALSE, gof=FALSE)
+             print=FALSE, plot=FALSE, gof=FALSE)
   
   # Analyze results
-  ret <- list(run=run, rep=rep, pr=pr, pc=pc, noise=noise, corr=set.corr, n=n)
+  ret <- data.frame(run=run, rep=rep, pr=pr, pc=pc, noise=noise, corr=set.corr, n=n, stringsAsFactors=FALSE)
   # 1. Unprojected estimates and CI's
   ret[["beta_intercept_mean"]] <- mean(res$BETA[,1])
   ret[["beta_intercept_5q"]] <- quantile(res$BETA[,1], .05)
