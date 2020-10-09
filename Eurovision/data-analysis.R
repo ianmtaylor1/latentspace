@@ -11,6 +11,8 @@ Xc.gender <- read.csv("2015data/covariate-gender.csv", row.names=1, stringsAsFac
 Xd.lang <- read.csv("2015data/covariate-language.csv", row.names=1)
 Xd.contig <- read.csv("2015data/covariate-contig.csv", row.names=1)
 Xc.odds <- read.csv("2015data/covariate-odds.csv", row.names=1)
+Xc.pop <- read.csv("2015data/covariate-population.csv", row.names=1)
+Xc.gdp <- read.csv("2015data/covariate-gdp.csv", row.names=1)
 
 # Which countries are we restricting the analysis to?
 countries.in.final <- row.names(Xc.gender)[Xc.gender[,"Female"] != "#N/A"]
@@ -26,12 +28,14 @@ dimnames(Xd)[[3]] <- list("Contig")
 #  Xc.odds[countries.in.final,"Median16"]
 #))
 #colnames(Xc) <- c(colnames(Xc.gender), "MedianOdds")
-Xc <- data.matrix(data.frame(MedianOdds=Xc.odds[countries.in.final,"Median16"]))
+Xc <- data.matrix(data.frame(LogMedianOdds=log(Xc.odds[countries.in.final,"Median16"]),
+                             LogPopulation=log(Xc.pop[countries.in.final,"Pop2015"]),
+                             LogGDP=log(Xc.gdp[countries.in.final,"GDPpc2015"])))
 
 # Run specifics
-nscan <- 1000000
-burn <- 10000
-odens <- 500
+nscan <- 5000000
+burn <- 25000
+odens <- 1000
 
 if (file.exists("2015results/no-rnd-effects.RDS")) {
   res.no.re <- readRDS("2015results/no-rnd-effects.RDS")
@@ -99,21 +103,21 @@ oddseffect.samples <- data.frame(
   Projected=c(rep("Projected", nrow(res.proj$DELTA)), 
               rep("Not Projected", nrow(res.proj$BETA)),
               rep("No Random Effects", nrow(res.no.re$BETA))),
-  Samples=c(res.proj$DELTA[,"MedianOdds.col"], 
-            res.proj$BETA[,"MedianOdds.col"],
-            res.no.re$BETA[,"MedianOdds.col"]),
+  Samples=c(res.proj$DELTA[,"LogMedianOdds.col"], 
+            res.proj$BETA[,"LogMedianOdds.col"],
+            res.no.re$BETA[,"LogMedianOdds.col"]),
   stringsAsFactors=FALSE)
 oddseffect.ci <- data.frame(
   Projected=c("Projected","Not Projected", "No Random Effects"),
-  Mean=c(mean(res.proj$DELTA[,"MedianOdds.col"]), 
-         mean(res.proj$BETA[,"MedianOdds.col"]),
-         mean(res.no.re$BETA[,"MedianOdds.col"])),
-  Low=c(quantile(res.proj$DELTA[,"MedianOdds.col"], probs=0.05), 
-        quantile(res.proj$BETA[,"MedianOdds.col"], probs=0.05),
-        quantile(res.no.re$BETA[,"MedianOdds.col"], probs=0.05)),
-  High=c(quantile(res.proj$DELTA[,"MedianOdds.col"], probs=0.95), 
-         quantile(res.proj$BETA[,"MedianOdds.col"], probs=0.95),
-         quantile(res.no.re$BETA[,"MedianOdds.col"], probs=0.95)),
+  Mean=c(mean(res.proj$DELTA[,"LogMedianOdds.col"]), 
+         mean(res.proj$BETA[,"LogMedianOdds.col"]),
+         mean(res.no.re$BETA[,"LogMedianOdds.col"])),
+  Low=c(quantile(res.proj$DELTA[,"LogMedianOdds.col"], probs=0.05), 
+        quantile(res.proj$BETA[,"LogMedianOdds.col"], probs=0.05),
+        quantile(res.no.re$BETA[,"LogMedianOdds.col"], probs=0.05)),
+  High=c(quantile(res.proj$DELTA[,"LogMedianOdds.col"], probs=0.95), 
+         quantile(res.proj$BETA[,"LogMedianOdds.col"], probs=0.95),
+         quantile(res.no.re$BETA[,"LogMedianOdds.col"], probs=0.95)),
   stringsAsFactors=FALSE
 )
 # Posterior samples for projected not/projected contiguity effect
