@@ -96,52 +96,50 @@ apply(res.proj$DELTA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.
 
 ################################################################################
 
-# Long form data format
+# Make plots of CIs for each covariate
+covars <- c("LogMedianOdds.col", "LogPopulation.col", "LogGDP.col", ".dyad")
+displaynames <- c("Log Betting Odds", "Log Population", "Log GDP per Capita", "Country Contiguity")
 
-# Posterior samples for projected/not projected odds effect
-oddseffect.samples <- data.frame(
-  Projected=c(rep("Projected", nrow(res.proj$DELTA)), 
-              rep("Not Projected", nrow(res.proj$BETA)),
-              rep("No Random Effects", nrow(res.no.re$BETA))),
-  Samples=c(res.proj$DELTA[,"LogMedianOdds.col"], 
-            res.proj$BETA[,"LogMedianOdds.col"],
-            res.no.re$BETA[,"LogMedianOdds.col"]),
-  stringsAsFactors=FALSE)
-oddseffect.ci <- data.frame(
-  Projected=c("Projected","Not Projected", "No Random Effects"),
-  Mean=c(mean(res.proj$DELTA[,"LogMedianOdds.col"]), 
-         mean(res.proj$BETA[,"LogMedianOdds.col"]),
-         mean(res.no.re$BETA[,"LogMedianOdds.col"])),
-  Low=c(quantile(res.proj$DELTA[,"LogMedianOdds.col"], probs=0.05), 
-        quantile(res.proj$BETA[,"LogMedianOdds.col"], probs=0.05),
-        quantile(res.no.re$BETA[,"LogMedianOdds.col"], probs=0.05)),
-  High=c(quantile(res.proj$DELTA[,"LogMedianOdds.col"], probs=0.95), 
-         quantile(res.proj$BETA[,"LogMedianOdds.col"], probs=0.95),
-         quantile(res.no.re$BETA[,"LogMedianOdds.col"], probs=0.95)),
-  stringsAsFactors=FALSE
-)
-# Posterior samples for projected not/projected contiguity effect
-contigeffect.samples <- data.frame(
-  Projected=c(rep("Projected", nrow(res.proj$DELTA)), 
-              rep("Not Projected", nrow(res.proj$BETA)),
-              rep("No Random Effects", nrow(res.no.re$BETA))),
-  Samples=c(res.proj$DELTA[,".dyad"], 
-            res.proj$BETA[,".dyad"], 
-            res.no.re$BETA[,".dyad"]),
-  stringsAsFactors=FALSE)
-contigeffect.ci <- data.frame(
-  Projected=c("Projected","Not Projected","No Random Effects"),
-  Mean=c(mean(res.proj$DELTA[,".dyad"]), 
-         mean(res.proj$BETA[,".dyad"]),
-         mean(res.no.re$BETA[,".dyad"])),
-  Low=c(quantile(res.proj$DELTA[,".dyad"], probs=0.05), 
-        quantile(res.proj$BETA[,".dyad"], probs=0.05),
-        quantile(res.no.re$BETA[,".dyad"], probs=0.05)),
-  High=c(quantile(res.proj$DELTA[,".dyad"], probs=0.95), 
-         quantile(res.proj$BETA[,".dyad"], probs=0.95),
-         quantile(res.no.re$BETA[,".dyad"], probs=0.95)),
-  stringsAsFactors=FALSE
-)
+pdf("2015results/Eurovision-results-plots.pdf", width=8, height=8)
+
+for (i in 1:length(covars)) {
+  covar.name <- covars[i]
+  display.name <- displaynames[i]
+  
+  covar.samples <- data.frame(
+    Projected=c(rep("Projected", nrow(res.proj$DELTA)), 
+                rep("Not Projected", nrow(res.proj$BETA)),
+                rep("No Random Effects", nrow(res.no.re$BETA))),
+    Samples=c(res.proj$DELTA[,covar.name], 
+              res.proj$BETA[,covar.name],
+              res.no.re$BETA[,covar.name]),
+    stringsAsFactors=FALSE)
+  covar.ci <- data.frame(
+    Projected=c("Projected","Not Projected", "No Random Effects"),
+    Mean=c(mean(res.proj$DELTA[,covar.name]), 
+           mean(res.proj$BETA[,covar.name]),
+           mean(res.no.re$BETA[,covar.name])),
+    Low=c(quantile(res.proj$DELTA[,covar.name], probs=0.05), 
+          quantile(res.proj$BETA[,covar.name], probs=0.05),
+          quantile(res.no.re$BETA[,covar.name], probs=0.05)),
+    High=c(quantile(res.proj$DELTA[,covar.name], probs=0.95), 
+           quantile(res.proj$BETA[,covar.name], probs=0.95),
+           quantile(res.no.re$BETA[,covar.name], probs=0.95)),
+    stringsAsFactors=FALSE
+  )
+  
+  g <- ggplot(covar.samples, aes(x=Samples, fill=Projected)) + 
+    geom_density(alpha=0.25) +
+    ggtitle(display.name, subtitle="Posterior KDEs")
+  print(g)
+  g <- ggplot(covar.ci, aes(x=Projected, y=Mean, ymin=Low, ymax=High)) +
+    geom_errorbar(width=0.2) +
+    geom_point(size=1.5) +
+    ggtitle(display.name, subtitle="Posterior means and 90% credible intervals")
+  print(g)
+}
+
+
 # Posterior means for column random effects with/without projections
 BPM <- data.frame(
   Projected=res.proj$BPM.ORTH,
@@ -153,26 +151,6 @@ BPM$AbsChg <- abs(BPM$Projected - BPM$NotProjected)
 BPM$ChgRnk <- rank(BPM$AbsChg)
 BPM$TopMovers <- ifelse(BPM$ChgRnk >= 23, BPM$Country, NA)
 
-# Plot posterior distributions
-
-pdf("2015results/Eurovision-results-plots.pdf", width=8, height=8)
-
-# Odds effect posterior KDEs and intervals
-ggplot(oddseffect.samples, aes(x=Samples, fill=Projected)) + 
-  geom_density(alpha=0.25) +
-  ggtitle("Betting Odds", subtitle="Posterior KDEs")
-ggplot(oddseffect.ci, aes(x=Projected, y=Mean, ymin=Low, ymax=High)) +
-  geom_errorbar(width=0.2) +
-  geom_point(size=1.5) +
-  ggtitle("Betting Odds", subtitle="Posterior means and 90% credible intervals")
-# Contiguity effect posterior KDEs and intervals
-ggplot(contigeffect.samples, aes(x=Samples, fill=Projected)) + 
-  geom_density(alpha=0.25) +
-  ggtitle("Country Contiguity", subtitle="Posterior KDEs")
-ggplot(contigeffect.ci, aes(x=Projected, y=Mean, ymin=Low, ymax=High)) +
-  geom_errorbar(width=0.2) +
-  geom_point(size=1.5) +
-  ggtitle("Country Contiguity", subtitle="Posterior means and 90% credible intervals")
 # Posterior mean of column effect scatterplots
 ggplot(BPM, aes(x=NotProjected, y=Projected)) + 
   geom_point() +
