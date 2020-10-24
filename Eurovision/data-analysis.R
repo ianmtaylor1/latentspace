@@ -4,6 +4,7 @@ library(amenhs)
 library(coda)
 library(ggplot2)
 library(ggrepel)
+library(foreach)
 
 # Read in all the csv files with response and covariates
 Y <- read.csv("2015data/votes-ranks.csv", row.names=1)
@@ -100,9 +101,9 @@ apply(res.proj$DELTA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.
 covars <- c("LogMedianOdds.col", "LogPopulation.col", "LogGDP.col", ".dyad")
 displaynames <- c("Log Betting Odds", "Log Population", "Log GDP per Capita", "Country Contiguity")
 
-pdf("2015results/Eurovision-results-plots.pdf", width=8, height=8)
 
-for (i in 1:length(covars)) {
+
+ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
   covar.name <- covars[i]
   display.name <- displaynames[i]
   
@@ -115,6 +116,7 @@ for (i in 1:length(covars)) {
               res.no.re$BETA[,covar.name]),
     stringsAsFactors=FALSE)
   covar.ci <- data.frame(
+    Covariate=rep(display.name, 3),
     Projected=c("Projected","Not Projected", "No Random Effects"),
     Mean=c(mean(res.proj$DELTA[,covar.name]), 
            mean(res.proj$BETA[,covar.name]),
@@ -128,17 +130,34 @@ for (i in 1:length(covars)) {
     stringsAsFactors=FALSE
   )
   
-  g <- ggplot(covar.samples, aes(x=Samples, fill=Projected)) + 
-    geom_density(alpha=0.25) +
-    ggtitle(display.name, subtitle="Posterior KDEs")
-  print(g)
-  g <- ggplot(covar.ci, aes(x=Projected, y=Mean, ymin=Low, ymax=High)) +
-    geom_errorbar(width=0.2) +
-    geom_point(size=1.5) +
-    ggtitle(display.name, subtitle="Posterior means and 90% credible intervals")
-  print(g)
+  #g <- ggplot(covar.samples, aes(x=Samples, fill=Projected)) + 
+  #  geom_density(alpha=0.25) +
+  #  ggtitle(display.name, subtitle="Posterior KDEs")
+  #print(g)
+  #g <- ggplot(covar.ci, aes(x=Projected, y=Mean, ymin=Low, ymax=High)) +
+  #  geom_errorbar(width=0.2) +
+  #  geom_point(size=3) +
+  #  coord_cartesian(ylim=c(-1, 1.5)) +
+  #  geom_abline(slope=0, intercept=0, color="red") +
+  #  ggtitle(display.name, subtitle="Posterior means and 90% credible intervals")
+  #print(g)
+  covar.ci
 }
 
+png("2015results/Eurovision-results-CI.png", width=1600, height=800)
+
+ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected)) +
+  geom_errorbar(size=1.5, width=0.3, position="dodge") +
+  geom_point(size=5, position=position_dodge(width=0.3)) +
+  geom_hline(yintercept=0) +
+  #ggtitle("Posterior means and 90% credible intervals", 
+  #        subtitle="Model Fixed Effects") +
+  labs(y="Estimate (mean and CI)", color="Model Type", x="") +
+  theme_bw(text=element_text(size=25))
+
+dev.off()
+
+pdf("2015results/Eurovision-results-plots.pdf", width=8, height=8)
 
 # Posterior means for column random effects with/without projections
 BPM <- data.frame(
