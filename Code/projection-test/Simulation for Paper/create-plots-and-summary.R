@@ -7,6 +7,7 @@ data.file <- "output/projections_for_paper_all.csv"
 
 results <- read.csv(data.file, stringsAsFactors=FALSE)
 
+plotdir <- "plots"
 
 # Columns that define the attributes of a run
 runcols <- list("run", "pr", "pd", "noise", "corr", "n")
@@ -77,6 +78,8 @@ longform <- foreach(var=c("intercept", "row1", "row2", "dyad1", "dyad2"), .combi
     stringsAsFactors = FALSE
   )
 }
+longform$fittype <- factor(longform$fittype, levels=c("No Random Effect", "Unprojected", "Projected"))
+longform$varname <- factor(longform$varname, levels=c("intercept", "row1", "row2", "dyad1", "dyad2"))
 
 # Produce plots
 for (noiselvl in c(1, 2)) {
@@ -88,6 +91,8 @@ for (noiselvl in c(1, 2)) {
       geom_boxplot() +
       geom_hline(yintercept=0.9, linetype="dotted") +
       ggtitle(paste("Noise =",noiselvl,"Correlation =", corlvl))
+    png(file.path(plotdir, paste0("noise", noise, "_cor", cor, ".png")))
     print(g)
+    dev.off()
   }
 }
