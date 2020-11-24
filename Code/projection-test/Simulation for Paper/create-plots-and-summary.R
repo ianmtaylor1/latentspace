@@ -90,8 +90,10 @@ for (noiselvl in c(1, 2)) {
     ) +
       geom_boxplot() +
       geom_hline(yintercept=0.9, linetype="dotted") +
-      ggtitle(paste("Noise =",noiselvl,"Correlation =", corlvl))
-    png(file.path(plotdir, paste0("noise", noise, "_cor", cor, ".png")))
+      ggtitle(paste("Noise =",noiselvl,"Correlation =", corlvl)) +
+      theme(text=element_text(size=18))
+    png(file.path(plotdir, paste0("noise", noiselvl, "_cor", corlvl, ".png")),
+        width=720, height=600)
     print(g)
     dev.off()
   }
