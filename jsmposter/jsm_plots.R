@@ -2,7 +2,7 @@
 library(RColorBrewer)
 library(ggplot2)
 
-setwd("/home/ian/Documents/Git/latentspace/jsmposter")
+#setwd("/home/ian/Documents/Git/latentspace/jsmposter")
 
 infile <- "data/JSM Results n=40.csv"
 outfile <- "JSM Results n=40.pdf"
@@ -65,9 +65,9 @@ ggplot(
   geom_boxplot(aes(col=Prior)) + #guides(color=FALSE) +
   coord_cartesian(ylim=c(0.5,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
-  labs(title="Prior Comparison: No Nodal Variation",
-       x="", y="Coverage") +
-  theme(text=element_text(size=24), legend.position="bottom") +
+  labs(x="", y="Coverage") +
+  theme_bw() +
+  theme(text=element_text(size=24), legend.position=c(0.8, 0.1)) +
   scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
   scale_x_discrete(labels=function(x) {parse(text=x)})
 
@@ -80,9 +80,9 @@ ggplot(
   geom_boxplot(aes(col=Prior)) + #guides(color=FALSE) +
   coord_cartesian(ylim=c(0.5,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
-  labs(title="Prior Comparison: Nodal Variation",
-       x="", y="Coverage") +
-  theme(text=element_text(size=24), legend.position="bottom") +
+  labs(x="", y="Coverage") +
+  theme_bw() +
+  theme(text=element_text(size=24), legend.position=c(0.8, 0.1)) +
   scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
   scale_x_discrete(labels=function(x) {parse(text=x)})
 
@@ -94,9 +94,9 @@ ggplot(
   geom_boxplot(aes(col=projected)) + #guides(color=FALSE) +
   coord_cartesian(ylim=c(0.5,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
-  labs(title="Projection Comparison: No Nodal Variation",
-       x="", y="Coverage") +
-  theme(text=element_text(size=24), legend.position="bottom") +
+  labs(x="", y="Coverage") +
+  theme_bw() +
+  theme(text=element_text(size=24), legend.position=c(0.8, 0.1)) +
   scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
   scale_x_discrete(labels=function(x) {parse(text=x)})
 
@@ -109,9 +109,9 @@ ggplot(
   geom_boxplot(aes(col=projected)) + #guides(color=FALSE) +
   coord_cartesian(ylim=c(0.5,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
-  labs(title="Projection Comparison: Nodal Variation",
-       x="", y="Coverage") +
-  theme(text=element_text(size=24), legend.position="bottom") +
+  labs(x="", y="Coverage") +
+  theme_bw() +
+  theme(text=element_text(size=24), legend.position=c(0.8, 0.1)) +
   scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
   scale_x_discrete(labels=function(x) {parse(text=x)})
 

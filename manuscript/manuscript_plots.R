@@ -63,8 +63,8 @@ ggplot(
   geom_boxplot(aes(col=Prior)) + guides(color=FALSE) +
   coord_cartesian(ylim=c(0.6,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
-  labs(title="CI Coverage With No Unobserved Variation",
-       x="", y="Coverage") +
+  labs(x="", y="Coverage") +
+  theme_bw() +
   theme(text=element_text(size=24), legend.position="bottom") +
   scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
   scale_x_discrete(labels=function(x) {parse(text=x)})

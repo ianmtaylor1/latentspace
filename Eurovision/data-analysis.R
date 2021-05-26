@@ -144,16 +144,17 @@ ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
   covar.ci
 }
 
-png("2015results/Eurovision-results-CI.png", width=1600, height=800)
+png("2015results/Eurovision-results-CI.png", width=900, height=600)
 
 ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected)) +
-  geom_errorbar(size=1.5, width=0.3, position="dodge") +
-  geom_point(size=5, position=position_dodge(width=0.3)) +
+  geom_errorbar(size=1.5, width=0.3, position=position_dodge(width=0.5)) +
+  geom_point(size=5, position=position_dodge(width=0.5)) +
   geom_hline(yintercept=0) +
   #ggtitle("Posterior means and 90% credible intervals", 
   #        subtitle="Model Fixed Effects") +
   labs(y="Estimate (mean and CI)", color="Model Type", x="") +
-  theme_bw(text=element_text(size=25))
+  theme_bw() + 
+  theme(text=element_text(size=25), legend.position=c(0.85, 0.85))
 
 dev.off()
 
