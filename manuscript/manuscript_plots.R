@@ -61,7 +61,7 @@ ggplot(
   aes(x=Var, y=coverage)
   ) +
   geom_boxplot(aes(col=Prior)) + guides(color=FALSE) +
-  coord_cartesian(ylim=c(0.6,1)) +
+  coord_cartesian(ylim=c(0.5,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
   labs(x="", y="Coverage") +
   theme_bw() +

@@ -69,16 +69,16 @@ longform <- foreach(var=c("intercept", "row1", "row2", "dyad1", "dyad2"), .combi
     corr = rep(coverage_summary$corr, 3),
     n = rep(coverage_summary$n, 3),
     varname = var,
-    fittype = c(rep("Unprojected", nrow(coverage_summary)),
-                rep("Projected", nrow(coverage_summary)),
-                rep("No Random Effect", nrow(coverage_summary))),
+    fittype = c(rep("Unprojected Additive Effects", nrow(coverage_summary)),
+                rep("Projected Additive Effects", nrow(coverage_summary)),
+                rep("Probit Regression", nrow(coverage_summary))),
     coverage = c(coverage_summary[[beta.colname]],
                  coverage_summary[[delta.colname]],
                  coverage_summary[[nore.colname]]),
     stringsAsFactors = FALSE
   )
 }
-longform$fittype <- factor(longform$fittype, levels=c("No Random Effect", "Unprojected", "Projected"))
+longform$fittype <- factor(longform$fittype, levels=c("Probit Regression", "Unprojected Additive Effects", "Projected Additive Effects"))
 longform$varname <- factor(longform$varname, levels=c("intercept", "row1", "row2", "dyad1", "dyad2"))
 
 # Produce plots
@@ -91,8 +91,8 @@ for (noiselvl in c(1, 2)) {
       geom_boxplot() +
       geom_hline(yintercept=0.9, linetype="dotted") +
       theme_bw() +
-      theme(text=element_text(size=18), legend.position=c(0.85, 0.45)) +
-      labs(x="", y="Coverage", color="Fit Type")
+      theme(text=element_text(size=18), legend.position=c(0.8, 0.3)) +
+      labs(x="", y="Coverage", color="")
     png(file.path(plotdir, paste0("noise", noiselvl, "_cor", corlvl, ".png")),
         width=720, height=600)
     print(g)

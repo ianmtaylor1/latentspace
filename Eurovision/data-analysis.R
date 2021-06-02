@@ -108,8 +108,8 @@ ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
   display.name <- displaynames[i]
   
   covar.samples <- data.frame(
-    Projected=c(rep("Projected", nrow(res.proj$DELTA)), 
-                rep("Not Projected", nrow(res.proj$BETA)),
+    Projected=c(rep("Projected Column Effects", nrow(res.proj$DELTA)), 
+                rep("Unprojected Column Effects", nrow(res.proj$BETA)),
                 rep("No Random Effects", nrow(res.no.re$BETA))),
     Samples=c(res.proj$DELTA[,covar.name], 
               res.proj$BETA[,covar.name],
@@ -117,7 +117,7 @@ ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
     stringsAsFactors=FALSE)
   covar.ci <- data.frame(
     Covariate=rep(display.name, 3),
-    Projected=c("Projected","Not Projected", "No Random Effects"),
+    Projected=c("Projected Column Effects","Unprojected Column Effects", "No Random Effects"),
     Mean=c(mean(res.proj$DELTA[,covar.name]), 
            mean(res.proj$BETA[,covar.name]),
            mean(res.no.re$BETA[,covar.name])),
@@ -144,6 +144,8 @@ ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
   covar.ci
 }
 
+ci.df$Projected <- factor(ci.df$Projected, levels=c("No Random Effects", "Unprojected Column Effects", "Projected Column Effects"))
+
 png("2015results/Eurovision-results-CI.png", width=900, height=600)
 
 ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected)) +
@@ -152,9 +154,10 @@ ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected)) +
   geom_hline(yintercept=0) +
   #ggtitle("Posterior means and 90% credible intervals", 
   #        subtitle="Model Fixed Effects") +
-  labs(y="Estimate (mean and CI)", color="Model Type", x="") +
+  labs(y="Estimate", color="", x="") +
   theme_bw() + 
-  theme(text=element_text(size=25), legend.position=c(0.85, 0.85))
+  theme(text=element_text(size=25), legend.position=c(0.75, 0.85)) +
+  coord_cartesian(ylim=c(-1.5, 1.5))
 
 dev.off()
 
