@@ -94,7 +94,7 @@ for (noiselvl in c(1, 2)) {
       theme(text=element_text(size=18), legend.position=c(0.8, 0.3)) +
       labs(x="", y="Coverage", color="")
     png(file.path(plotdir, paste0("noise", noiselvl, "_cor", corlvl, ".png")),
-        width=720, height=600)
+        width=560, height=450)
     print(g)
     dev.off()
   }
