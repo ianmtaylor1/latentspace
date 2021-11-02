@@ -71,7 +71,7 @@ num.re <- arglist$num.re
 response <- arglist$response
 run <- arglist$run
 
-cat("Run index", args[1], ":", excessvar, re.type, num.re, response, run)
+cat("Run index", args[1], ":", excessvar, re.type, num.re, response, run, "\n")
 
 ################################################################################
 ################################################################################
@@ -141,7 +141,7 @@ intercept <- 1
 # Do the run
 
 # Directory where all result RDSs and CSVs will be saved
-savepath <- file.path(result.basedir, excessvar, restype, 
+savepath <- file.path(result.basedir, excessvar, re.type, 
                       paste0("num_re_", num.re), response, paste0("run", run))
 dir.create(savepath, recursive=TRUE)
 
