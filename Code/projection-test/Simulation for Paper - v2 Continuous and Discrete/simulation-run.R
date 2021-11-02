@@ -168,7 +168,8 @@ delta.c <- delta[3]
 # Directory where all result RDSs and CSVs will be saved
 savepath <- file.path(result.basedir, excessvar, re.type, 
                       paste0("num_re_", num.re), response, paste0("run", run))
-dir.create(savepath, recursive=TRUE)
+dir.create(file.path(scratch.basedir, savepath), recursive=TRUE)
+dir.create(result.basedir, recursive=TRUE)
 
 
 cl <- makeCluster(cores)
