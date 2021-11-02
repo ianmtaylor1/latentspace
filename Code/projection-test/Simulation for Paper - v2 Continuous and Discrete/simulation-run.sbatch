@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --partition=shas
-#SBATCH --time=12:00:00
+#SBATCH --time=18:00:00
 #SBATCH -o /home/imtaylor@colostate.edu/logs/latentspace_%A_%a.out
 #SBATCH -e /home/imtaylor@colostate.edu/logs/latentspace_%A_%a.err
 #SBATCH --mail-type=ALL

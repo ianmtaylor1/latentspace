@@ -14,9 +14,11 @@ library(digest)
 
 # Global parameters
 
+scratch.basedir <- "/scratch/summit/imtaylor@colostate.edu/net-reg-proj"
+
 result.basedir <- "results"
 cores <- 8
-reps <- 200
+reps <- 8
 N <- 27
 
 iter <- 80000
@@ -65,6 +67,7 @@ index.to.args <- function(idx) {
 
 arglist <- index.to.args(as.integer(args[1]))
 
+jobno <- args[1]
 excessvar <- arglist$excessvar
 re.type <- arglist$re.type
 num.re <- arglist$num.re
@@ -136,8 +139,26 @@ if ((num.re == 2) && (ev.mag > 0)) {
   true.b <- rep(0, N)
 }
 
+# The true values of beta, including the intercept
 beta.r <- beta.c <- beta.d <- 1
 intercept <- 1
+
+# Beta as a vector in the order it will show up in the samples
+beta <- c(intercept, beta.d, beta.r, beta.c)
+
+# Build X as a matrix for projecting excess variation to create true delta
+Xmat <- matrix(0, nrow=N^2, ncol=4)
+Xmat[,1] <- 1
+Xmat[,2] <- c(Xd[,,1])
+Xmat[,3] <- rep(Xr[,1], N)
+Xmat[,4] <- c(t(matrix(Xc[,1], nrow=N, ncol=N)))
+
+# Calculate true delta, as a vector and as individual components
+delta <- beta + c(solve(t(Xmat) %*% Xmat) %*% (t(Xmat) %*% c(outer(true.a, true.b, "+"))))
+delta.intercept <- delta[1]
+delta.d <- delta[1]
+delta.r <- delta[2]
+delta.c <- delta[3]
 
 ################################################################################
 ################################################################################
@@ -183,22 +204,53 @@ summary <- foreach(rep=seq_len(reps), .combine="rbind", .packages=c("digest")) %
                      nscan = iter, burn = burn, odens = thin,
                      print = FALSE, plot = FALSE, gof = FALSE)
   
+  # We should have 4 columns in beta and delta
+  stopifnot(ncol(res$BETA) == 4, ncol(res$DELTA) == 4)
+  
   # Save the fit object as an RDS file
-  saveRDS(res, file.path(savepath, paste0("rep", rep, ".RDS")))
+  # Save to scratch because the total amount of data will be HUGE (like 70 GB)
+  saveRDS(res, file.path(scratch.basedir, savepath, paste0("rep", rep, ".RDS")))
+  
+  #### Process the result into a data frame that can be output and rbinded
+  
   
   # Output one row of a dataframe to be combined by rbind/foreach
-  data.frame(
+  ret <- data.frame(
     excessvar = excessvar,
     re.type = re.type,
     num.re = num.re,
     response = response,
     run = run,
     rep = rep,
+    beta_int_true = intercept,
+    beta_row_true = beta.r,
+    beta_col_true = beta.c,
+    beta_dyad_true = beta.d,
+    delta_int_true = delta.intercept,
+    delta_row_true = delta.r,
+    delta_col_true = delta.c,
+    delta_dyad_true = delta.d,
     stringsAsFactors = FALSE
   )
+  
+  varnames <- c("intercept", "row", "column", "dyad")
+  for (i in 1:4) {
+    name <- varnames[i]
+    ret[[paste0("beta_", name, "_mean")]] <- mean(res$BETA[,i])
+    ret[[paste0("beta_", name, "_var")]] <- var(res$BETA[,i])
+    ret[[paste0("beta_", name, "_5q")]] <- quantile(res$BETA[,i], .05)
+    ret[[paste0("beta_", name, "_95q")]] <- quantile(res$BETA[,i], .95)
+    ret[[paste0("delta_", name, "_mean")]] <- mean(res$DELTA[,i])
+    ret[[paste0("delta_", name, "_var")]] <- var(res$DELTA[,i])
+    ret[[paste0("delta_", name, "_5q")]] <- quantile(res$DELTA[,i], .05)
+    ret[[paste0("delta_", name, "_95q")]] <- quantile(res$DELTA[,i], .95)
+  }
+  
+  # Output the data frame row
+  ret
 }
 
 stopCluster(cl)
 
-write.csv(summary, file.path(savepath, "summary.csv"), row.names=F)
+write.csv(summary, file.path(result.basedir, paste0("job_", jobno, ".csv")), row.names=F)
 
