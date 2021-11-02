@@ -124,10 +124,14 @@ if (excessvar == "none") {
   ev.mag <- 0.5
 }
 #    Next: always generate a, the row/sender excess variation
-true.a <- gencancor(cbind(rep(1, N), Xr), rnorm(N, sd=1) * ev.mag, ev.cor)
+if (ev.mag > 0) {
+  true.a <- gencancor(cbind(rep(1, N), Xr), rnorm(N, sd=ev.mag), ev.cor)
+} else {
+  true.a <- rep(0, N)
+}
 #    Lastly, if 2 random effects, generate the column/receiver excess variation
-if (num.re == 2) {
-  true.b <- gencancor(cbind(rep(1, N), Xc), rnorm(N, sd=1) * ev.mag, ev.cor)
+if ((num.re == 2) && (ev.mag > 0)) {
+  true.b <- gencancor(cbind(rep(1, N), Xc), rnorm(N, sd=ev.mag), ev.cor)
 } else {
   true.b <- rep(0, N)
 }
@@ -148,6 +152,7 @@ dir.create(savepath, recursive=TRUE)
 
 cl <- makeCluster(cores)
 registerDoParallel(cl)
+#registerDoSEQ()
 
 summary <- foreach(rep=seq_len(reps), .combine="rbind", .packages=c("digest")) %dopar% {
   # Set seed predictably for error
