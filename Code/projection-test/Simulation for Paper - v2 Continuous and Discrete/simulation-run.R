@@ -18,7 +18,7 @@ scratch.basedir <- "/scratch/summit/imtaylor@colostate.edu/net-reg-proj"
 
 result.basedir <- "results"
 cores <- 8
-reps <- 8
+reps <- 200
 N <- 27
 
 iter <- 80000

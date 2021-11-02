@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name latentspace_projections
-#SBATCH --array=0-3
+#SBATCH --array=0-1679
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=8
 #SBATCH --partition=shas
