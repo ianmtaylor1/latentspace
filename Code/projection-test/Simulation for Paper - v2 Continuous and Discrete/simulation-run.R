@@ -155,7 +155,7 @@ summary <- foreach(rep=seq_len(reps), .combine="rbind", .packages=c("digest")) %
   
   # Generate error
   Z <- intercept +
-    outer(c(beta.r %*% Xr), c(beta.c %*% Xc), "+") + # Sender and receiver covariates
+    outer(c(Xr %*% beta.r), c(Xc %*% beta.c), "+") + # Sender and receiver covariates
     outer(true.a, true.b, "+") + # Sender and receiver excess variation (possibly equal to zero)
     matrix(rnorm(N^2), nrow=N, ncol=N) # Noise
   for (i in seq_along(beta.d)) {
