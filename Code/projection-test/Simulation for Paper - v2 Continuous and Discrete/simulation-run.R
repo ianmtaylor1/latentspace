@@ -194,23 +194,28 @@ summary <- foreach(rep=seq_len(reps), .combine="rbind", .packages=c("digest")) %
     Y <- (Z >= 0) * 1
   }
   
-  # Fit model
-  res <- amenhs::ame(Y, Xrow = Xr, Xcol = Xc, Xdyad = Xd,
-                     family = ifelse(response=="continuous", "nrm", "bin"),
-                     halfcauchy = (re.type == "halfcauchy"),
-                     project = TRUE,
-                     rvar = (re.type != "none"),
-                     cvar = ((re.type != "none") && (num.re == 2)),
-                     dcor = FALSE,
-                     nscan = iter, burn = burn, odens = thin,
-                     print = FALSE, plot = FALSE, gof = FALSE)
-  
-  # We should have 4 columns in beta and delta
-  stopifnot(ncol(res$BETA) == 4, ncol(res$DELTA) == 4)
-  
-  # Save the fit object as an RDS file
-  # Save to scratch because the total amount of data will be HUGE (like 70 GB)
-  saveRDS(res, file.path(scratch.basedir, savepath, paste0("rep", rep, ".RDS")))
+  if (!file.exists(file.path(scratch.basedir, savepath, paste0("rep", rep, ".RDS")))) {
+    # Fit model
+    res <- amenhs::ame(Y, Xrow = Xr, Xcol = Xc, Xdyad = Xd,
+                       family = ifelse(response=="continuous", "nrm", "bin"),
+                       halfcauchy = (re.type == "halfcauchy"),
+                       project = TRUE,
+                       rvar = (re.type != "none"),
+                       cvar = ((re.type != "none") && (num.re == 2)),
+                       dcor = FALSE,
+                       nscan = iter, burn = burn, odens = thin,
+                       print = FALSE, plot = FALSE, gof = FALSE)
+    
+    # We should have 4 columns in beta and delta
+    stopifnot(ncol(res$BETA) == 4, ncol(res$DELTA) == 4)
+    
+    # Save the fit object as an RDS file
+    # Save to scratch because the total amount of data will be HUGE (like 70 GB)
+    saveRDS(res, file.path(scratch.basedir, savepath, paste0("rep", rep, ".RDS")))
+  } else {
+    # If this run has been done already, just load it.
+    res <- readRDS(file.path(scratch.basedir, savepath, paste0("rep", rep, ".RDS")))
+  }
   
   #### Process the result into a data frame that can be output and rbinded
   
