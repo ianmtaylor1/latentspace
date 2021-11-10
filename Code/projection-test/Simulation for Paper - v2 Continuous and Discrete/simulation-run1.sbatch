@@ -3,7 +3,7 @@
 #SBATCH --job-name latentspace_projections
 #SBATCH --array=0-999
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
+#SBATCH --cpus-per-task=16
 #SBATCH --partition=shas
 #SBATCH --time=12:00:00
 #SBATCH -o /home/imtaylor@colostate.edu/logs/latentspace_%A_%a.out

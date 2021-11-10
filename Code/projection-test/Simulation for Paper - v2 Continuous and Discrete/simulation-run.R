@@ -17,7 +17,7 @@ library(digest)
 scratch.basedir <- "/scratch/summit/imtaylor@colostate.edu/net-reg-proj"
 
 result.basedir <- "results"
-cores <- 8
+cores <- 16
 reps <- 200
 N <- 27
 
@@ -94,7 +94,8 @@ gencancor <- function(X, Y, rho) {
 }
 
 # 0. Set the seed predictably
-set.seed(strtoi(substr(digest(list(excessvar, re.type, num.re, response, run)), 1, 6), base=16))
+design.seed <- strtoi(substr(digest(list(excessvar, num.re, response, run)), 1, 6), base=16)
+set.seed(design.seed)
 
 # 1. The design matrix and true beta values
 #    Always: intercept, dyad covariate, row covariate, column covariate
@@ -178,7 +179,8 @@ registerDoParallel(cl)
 
 summary <- foreach(rep=seq_len(reps), .combine="rbind", .packages=c("digest")) %dopar% {
   # Set seed predictably for error
-  set.seed(strtoi(substr(digest(list(excessvar, re.type, num.re, response, run, rep)), 1, 6), base=16))
+  error.seed <- strtoi(substr(digest(list(excessvar, num.re, response, run, rep)), 1, 6), base=16)
+  set.seed(error.seed)
   
   # Generate error
   Z <- intercept +
@@ -228,6 +230,8 @@ summary <- foreach(rep=seq_len(reps), .combine="rbind", .packages=c("digest")) %
     response = response,
     run = run,
     rep = rep,
+    design.seed = design.seed,
+    error.seed = error.seed,
     beta_int_true = intercept,
     beta_row_true = beta.r,
     beta_col_true = beta.c,
@@ -239,7 +243,7 @@ summary <- foreach(rep=seq_len(reps), .combine="rbind", .packages=c("digest")) %
     stringsAsFactors = FALSE
   )
   
-  varnames <- c("intercept", "row", "column", "dyad")
+  varnames <- c("int", "row", "col", "dyad")
   for (i in 1:4) {
     name <- varnames[i]
     ret[[paste0("beta_", name, "_mean")]] <- mean(res$BETA[,i])
