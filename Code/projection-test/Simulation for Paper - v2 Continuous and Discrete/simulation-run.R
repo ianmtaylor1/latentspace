@@ -206,7 +206,8 @@ summary <- foreach(rep=seq_len(reps), .combine="rbind", .packages=c("digest")) %
                        cvar = ((re.type != "none") && (num.re == 2)),
                        dcor = FALSE,
                        nscan = iter, burn = burn, odens = thin,
-                       print = FALSE, plot = FALSE, gof = FALSE)
+                       print = FALSE, plot = FALSE, gof = FALSE, 
+                       seed = 2) # Different seed may help some of the errors?
     
     # We should have 4 columns in beta and delta
     stopifnot(ncol(res$BETA) == 4, ncol(res$DELTA) == 4)

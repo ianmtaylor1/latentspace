@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name latentspace_projections
-#SBATCH --array=100,120-159,163-167,238,241,252,278,360-399,600-639,840-879,1000-1679
+#SBATCH --array=1000-1679,147,152,157,382,396-398,631,871-879
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --mem-per-cpu=4G
