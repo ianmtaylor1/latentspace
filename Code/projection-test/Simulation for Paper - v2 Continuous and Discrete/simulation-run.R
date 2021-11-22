@@ -17,7 +17,7 @@ library(digest)
 scratch.basedir <- "/scratch/summit/imtaylor@colostate.edu/net-reg-proj"
 
 result.basedir <- "results"
-cores <- 16
+cores <- 12
 reps <- 200
 N <- 27
 
