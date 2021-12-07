@@ -164,5 +164,5 @@ deltas.df <- foreach(jobno=seq(0, 1679), .combine="rbind") %do% {
   )
 }
 
-write.csv(deltas.df, file.path(result.basedir, "true_deltas.csv"))
+write.csv(deltas.df, file.path(result.basedir, "true_deltas.csv"), row.names = F)
 

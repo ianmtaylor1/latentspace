@@ -6,14 +6,31 @@ library(stringi)
 
 
 # Read in all csv's, append into one dataframe
-allres <- foreach(f=list.files("results"), .combine="rbind") %do% {
+allres <- foreach(f=list.files("results", pattern="^job.*\\.csv"), .combine="rbind") %do% {
   read.csv(file.path("results", f), stringsAsFactors = F)
 }
+# Overwrite correct true deltas
+truedeltas <- read.csv(file.path("results", "true_deltas.csv"), stringsAsFactors = F)
+seedsdone <- c()
+for (i in seq_len(nrow(truedeltas))) {
+  # For every row in the true deltas df, write their values to rows in allres with
+  # the same design.seed. Avoid redundant work caused by duplicate design seeds
+  if (!(truedeltas[i,"design.seed"] %in% seedsdone)) {
+    rowidx <- allres[,"design.seed"] == truedeltas[i,"design.seed"]
+    for (truecol in c("delta_int_true", "delta_row_true", "delta_col_true", "delta_dyad_true")) {
+      allres[rowidx, truecol] <- truedeltas[i, truecol]
+    }
+    seedsdone <- c(seedsdone, truedeltas[i,"design.seed"])
+  }
+}
+# Split the excess variation variable into correlation and magnitude
 dashloc <- stri_locate(allres$excessvar, fixed="-")[,"start"]
 allres$excessvarcor <- ifelse(is.na(dashloc), "ind", substr(allres$excessvar, start=1, stop=dashloc - 1))
 allres$excessvarmag <- ifelse(is.na(dashloc), "none", substr(allres$excessvar, start=dashloc+1, stop=1000))
 allres$excessvarcor <- factor(allres$excessvarcor, levels=c("ind", "low", "high"))
 allres$excessvarmag <- factor(allres$excessvarmag, levels=c("large", "small", "none"))
+# Other factors for ordering
+allres$re.type <- factor(allres$re.type, levels=c("none", "invgamma", "halfcauchy"))
 
 ######## Means and Variances ###################################################
 
@@ -90,6 +107,8 @@ coverage_summary <- as.data.frame(
 
 coverage_summary %>% 
   filter(response == "binary", num.re == 2) %>%
-  ggplot(aes(x=re.type, y=delta_int_coverage)) +
-  geom_boxplot(aes(color=re.type)) +
-  facet_wrap(excessvarmag ~ excessvarcor)
+  ggplot(aes(x=re.type, y=delta_row_coverage)) +
+  geom_point(aes(color=re.type)) +
+  facet_wrap(excessvarmag ~ excessvarcor) +
+  geom_hline(yintercept=qbinom(0.95, 200, 0.9)/200) +
+  geom_hline(yintercept=qbinom(0.05, 200, 0.9)/200)
