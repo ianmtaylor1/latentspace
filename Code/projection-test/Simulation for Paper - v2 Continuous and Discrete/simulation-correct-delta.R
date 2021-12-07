@@ -68,7 +68,7 @@ gencancor <- function(X, Y, rho) {
 }
 
 
-deltas.df <- foreach(jobno=c(0, 1679)) %do% {
+deltas.df <- foreach(jobno=c(0, 1679), .combine="rbind") %do% {
   
   arglist <- index.to.args(jobno)
   
@@ -78,7 +78,7 @@ deltas.df <- foreach(jobno=c(0, 1679)) %do% {
   response <- arglist$response
   run <- arglist$run
   
-  cat("Run index", args[1], ":", excessvar, re.type, num.re, response, run, "\n")
+  cat("Run index", jobno, ":", excessvar, re.type, num.re, response, run, "\n")
   
   # 0. Set the seed predictably
   design.seed <- strtoi(substr(digest(list(excessvar, num.re, response, run)), 1, 6), base=16)
