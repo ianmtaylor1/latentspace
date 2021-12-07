@@ -68,7 +68,7 @@ gencancor <- function(X, Y, rho) {
 }
 
 
-deltas.df <- foreach(jobno=c(0, 1679), .combine="rbind") %do% {
+deltas.df <- foreach(jobno=seq(0, 1679), .combine="rbind") %do% {
   
   arglist <- index.to.args(jobno)
   
