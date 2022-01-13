@@ -44,7 +44,7 @@ allres %>%
   pivot_wider(id_cols=c("excessvarcor", "excessvarmag", "num.re", "response", "run", "rep", "design.seed", "error.seed"), 
               names_from=re.type, values_from=paste0("delta_", var, "_mean")) %>%
   ggplot(aes(x=none, y=invgamma)) +
-  geom_point() +
+  geom_point(size=0.5) +
   facet_wrap(excessvarmag ~ excessvarcor) +
   geom_abline(slope=1, intercept=0) +
   coord_fixed() +
@@ -55,7 +55,7 @@ allres %>%
   pivot_wider(id_cols=c("excessvarcor", "excessvarmag", "response", "run", "rep", "design.seed", "error.seed"), 
               names_from=re.type, values_from=paste0("delta_", var, "_var")) %>%
   ggplot(aes(x=none, y=invgamma)) +
-  geom_point() +
+  geom_point(size=0.5) +
   facet_wrap(excessvarmag ~ excessvarcor) +
   geom_abline(slope=1, intercept=0) +
   coord_fixed() +
