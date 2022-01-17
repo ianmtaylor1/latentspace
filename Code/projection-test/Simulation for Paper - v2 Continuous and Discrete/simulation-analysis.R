@@ -34,32 +34,40 @@ allres$re.type <- factor(allres$re.type, levels=c("none", "invgamma", "halfcauch
 
 ######## Means and Variances ###################################################
 
-
-var <- "col"
-resp <- "continuous"
-
-# Plots of posterior means and variances for restricted vs non-network models
-allres %>%
-  filter(response == resp, num.re == 2) %>%
-  pivot_wider(id_cols=c("excessvarcor", "excessvarmag", "num.re", "response", "run", "rep", "design.seed", "error.seed"), 
-              names_from=re.type, values_from=paste0("delta_", var, "_mean")) %>%
-  ggplot(aes(x=none, y=invgamma)) +
-  geom_point(size=0.5) +
-  facet_wrap(excessvarmag ~ excessvarcor) +
-  geom_abline(slope=1, intercept=0) +
-  coord_fixed() +
-  theme(aspect.ratio = 1)
-
-allres %>%
-  filter(response == resp, num.re == 2) %>%
-  pivot_wider(id_cols=c("excessvarcor", "excessvarmag", "response", "run", "rep", "design.seed", "error.seed"), 
-              names_from=re.type, values_from=paste0("delta_", var, "_var")) %>%
-  ggplot(aes(x=none, y=invgamma)) +
-  geom_point(size=0.5) +
-  facet_wrap(excessvarmag ~ excessvarcor) +
-  geom_abline(slope=1, intercept=0) +
-  coord_fixed() +
-  theme(aspect.ratio = 1)
+for (resp in c("continuous", "binary")) {
+  var <- "col"
+  num.re <- 2
+  width <- height <- 6
+  
+  # Plots of posterior means and variances for restricted vs non-network models
+  allres %>%
+    filter(response == resp, num.re == num.re) %>%
+    pivot_wider(id_cols=c("excessvarcor", "excessvarmag", "num.re", "response", "run", "rep", "design.seed", "error.seed"), 
+                names_from=re.type, values_from=paste0("delta_", var, "_mean")) %>%
+    ggplot(aes(x=none, y=invgamma)) +
+    geom_point(size=0.5) +
+    facet_wrap(excessvarmag ~ excessvarcor) +
+    geom_abline(slope=1, intercept=0) +
+    theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
+    ggtitle("Column Covariate Posterior Means") +
+    xlab("Non-network Model Posterior Mean") +
+    ylab("Restricted Network Model Posterior Mean")
+  ggsave(paste0(resp, "-mean-comparison.png"), width=width, height=height, units="in")
+  
+  allres %>%
+    filter(response == resp, num.re == num.re) %>%
+    pivot_wider(id_cols=c("excessvarcor", "excessvarmag", "response", "run", "rep", "design.seed", "error.seed"), 
+                names_from=re.type, values_from=paste0("delta_", var, "_var")) %>%
+    ggplot(aes(x=none, y=invgamma)) +
+    geom_point(size=0.5) +
+    facet_wrap(excessvarmag ~ excessvarcor) +
+    geom_abline(slope=1, intercept=0) +
+    theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
+    ggtitle("Column Covariate Posterior Variances") +
+    xlab("Non-network Model Posterior Variance") +
+    ylab("Restricted Network Model Posterior Variance")
+  ggsave(paste0(resp, "-variance-comparison.png"), width=width, height=height, units="in")
+}
 
 
 ####### Coverage ###############################################################
