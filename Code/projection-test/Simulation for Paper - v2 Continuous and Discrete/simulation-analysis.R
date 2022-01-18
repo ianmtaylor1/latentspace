@@ -34,10 +34,11 @@ allres$re.type <- factor(allres$re.type, levels=c("none", "invgamma", "halfcauch
 
 ######## Means and Variances ###################################################
 
+var <- "col"
+num.re <- 2
+width <- height <- 6
+
 for (resp in c("continuous", "binary")) {
-  var <- "col"
-  num.re <- 2
-  width <- height <- 6
   
   # Plots of posterior means and variances for restricted vs non-network models
   allres %>%
@@ -49,6 +50,7 @@ for (resp in c("continuous", "binary")) {
     facet_wrap(excessvarmag ~ excessvarcor) +
     geom_abline(slope=1, intercept=0) +
     theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
+    theme_bw() + 
     ggtitle("Column Covariate Posterior Means") +
     xlab("Non-network Model Posterior Mean") +
     ylab("Restricted Network Model Posterior Mean")
@@ -63,12 +65,12 @@ for (resp in c("continuous", "binary")) {
     facet_wrap(excessvarmag ~ excessvarcor) +
     geom_abline(slope=1, intercept=0) +
     theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
+    theme_bw() + 
     ggtitle("Column Covariate Posterior Variances") +
     xlab("Non-network Model Posterior Variance") +
     ylab("Restricted Network Model Posterior Variance")
   ggsave(paste0(resp, "-variance-comparison.png"), width=width, height=height, units="in")
 }
-
 
 ####### Coverage ###############################################################
 
@@ -112,11 +114,20 @@ coverage_summary <- as.data.frame(
 )
 
 
+width <- 10
+height <- 6
 
 coverage_summary %>% 
   filter(response == "binary", num.re == 2) %>%
-  ggplot(aes(x=re.type, y=delta_row_coverage)) +
-  geom_point(aes(color=re.type)) +
+  ggplot(aes(x=re.type, y=delta_col_coverage)) +
+  geom_jitter(aes(color=re.type), width=0.1, height=0, size=0.75) +
   facet_wrap(excessvarmag ~ excessvarcor) +
-  geom_hline(yintercept=qbinom(0.95, 200, 0.9)/200) +
-  geom_hline(yintercept=qbinom(0.05, 200, 0.9)/200)
+  geom_hline(yintercept=0.9, alpha=0.4) +
+  geom_hline(yintercept=qbinom(0.95, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
+  geom_hline(yintercept=qbinom(0.05, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
+  theme(aspect.ratio = 0.6, axis.text.x = element_text(angle=30, hjust=1)) +
+  theme_bw() + 
+  xlab("Model Random Effects") +
+  ylab("90% Credible Interval Coverage") +
+  ggtitle("Credible Interval Coverage in Restricted Binary Network Regression")
+ggsave("binary-coverage.png", width=width, height=height, units="in")
