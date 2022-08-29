@@ -1,9 +1,10 @@
 # Analyze the results of the first Simulation using the custom version of the code
 library(RColorBrewer)
 library(ggplot2)
+library(here)
 
-infile <- "data/JSM Results n=40.csv"
-outfile <- "plots.pdf"
+jsminfile <- here("jsmposter","data","JSM Results n=40.csv")
+outdir <- here("manuscript", "plots")
 
 mypalette <- c(
   brewer.pal(10,"Paired")[c(1,3,5,9)]
@@ -12,7 +13,7 @@ mypalette <- c(
 palette(mypalette)
 
 
-results <- read.csv(infile, header=TRUE, stringsAsFactors=FALSE)
+results <- read.csv(jsminfile, header=TRUE, stringsAsFactors=FALSE)
 
 results[,"Covered"] <- 1 * ((results[,"TrueValue"] >= results[,"CI_low"]) & (results[,"TrueValue"] <= results[,"CI_high"]))
 results[,"CI_width"] <- results[,"CI_high"] - results[,"CI_low"]
@@ -52,23 +53,34 @@ aggregate$Prior <- factor(aggregate$Prior, levels=c("Inverse Wishart", "Half Cau
 
 ###############################################################################
 
-pdf(outfile, width=9, height=6)
-
-
-# Coverage for when there is no nodal variation using random effects with default prior
+# Coverage for when there is no nodal variation - priors
 ggplot(
-  subset(aggregate, (Z_additive == FALSE)&(RndEffects=="A_IG")&(projected==FALSE)),
+  subset(aggregate, (Z_additive == FALSE)&(RndEffects!="None")&(projected==FALSE)),
   aes(x=Var, y=coverage)
-  ) +
-  geom_boxplot(aes(col=Prior)) + guides(color=FALSE) +
+) +
+  geom_boxplot(aes(col=Prior)) + #guides(color=FALSE) +
   coord_cartesian(ylim=c(0.5,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
   labs(x="", y="Coverage") +
   theme_bw() +
-  theme(text=element_text(size=24), legend.position="bottom") +
+  theme(text=element_text(size=30), legend.position=c(0.8, 0.1)) +
   scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
   scale_x_discrete(labels=function(x) {parse(text=x)})
+ggsave(file.path(outdir, "coverage-novariation.png"), width=9, height=9)
 
+# Coverage for when there is nodal variation - priors
+ggplot(
+  subset(aggregate, (Z_additive == TRUE)&(RndEffects!="None")&(projected==FALSE)),
+  aes(x=Var, y=coverage)
+) +
+  geom_boxplot(aes(col=Prior)) + #guides(color=FALSE) +
+  coord_cartesian(ylim=c(0.5,1)) +
+  geom_abline(linetype=2, slope=0, intercept=.9) +
+  labs(x="", y="Coverage") +
+  theme_bw() +
+  theme(text=element_text(size=30), legend.position=c(0.8, 0.1)) +
+  scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
+  scale_x_discrete(labels=function(x) {parse(text=x)})
+ggsave(file.path(outdir, "coverage-variation.png"), width=9, height=9)
 
-dev.off()
 
