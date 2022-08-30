@@ -53,12 +53,43 @@ aggregate$Prior <- factor(aggregate$Prior, levels=c("Inverse Wishart", "Half Cau
 
 ###############################################################################
 
-# Coverage for when there is no nodal variation - priors
+# # Coverage for when there is no nodal variation - priors
+# ggplot(
+#   subset(aggregate, (Z_additive == FALSE)&(RndEffects!="None")&(projected==FALSE)),
+#   aes(x=Var, y=coverage)
+# ) +
+#   geom_boxplot(aes(col=Prior)) + #guides(color=FALSE) +
+#   coord_cartesian(ylim=c(0.5,1)) +
+#   geom_abline(linetype=2, slope=0, intercept=.9) +
+#   labs(x="", y="Coverage") +
+#   theme_bw() +
+#   theme(text=element_text(size=30), legend.position=c(0.8, 0.1)) +
+#   scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
+#   scale_x_discrete(labels=function(x) {parse(text=x)})
+# ggsave(file.path(outdir, "coverage-novariation.png"), width=9, height=9)
+# 
+# # Coverage for when there is nodal variation - priors
+# ggplot(
+#   subset(aggregate, (Z_additive == TRUE)&(RndEffects!="None")&(projected==FALSE)),
+#   aes(x=Var, y=coverage)
+# ) +
+#   geom_boxplot(aes(col=Prior)) + #guides(color=FALSE) +
+#   coord_cartesian(ylim=c(0.5,1)) +
+#   geom_abline(linetype=2, slope=0, intercept=.9) +
+#   labs(x="", y="Coverage") +
+#   theme_bw() +
+#   theme(text=element_text(size=30), legend.position=c(0.8, 0.1)) +
+#   scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
+#   scale_x_discrete(labels=function(x) {parse(text=x)})
+# ggsave(file.path(outdir, "coverage-variation.png"), width=9, height=9)
+
+# Coverage with and without nodal variation - priors
 ggplot(
-  subset(aggregate, (Z_additive == FALSE)&(RndEffects!="None")&(projected==FALSE)),
+  subset(aggregate, (RndEffects!="None")&(projected==FALSE)),
   aes(x=Var, y=coverage)
 ) +
   geom_boxplot(aes(col=Prior)) + #guides(color=FALSE) +
+  facet_wrap("Z_additive", labeller=labeller(Z_additive=function(x) paste0(ifelse(x, "", "No "), "Unobserved Nodal Variation"))) +
   coord_cartesian(ylim=c(0.5,1)) +
   geom_abline(linetype=2, slope=0, intercept=.9) +
   labs(x="", y="Coverage") +
@@ -66,21 +97,4 @@ ggplot(
   theme(text=element_text(size=30), legend.position=c(0.8, 0.1)) +
   scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
   scale_x_discrete(labels=function(x) {parse(text=x)})
-ggsave(file.path(outdir, "coverage-novariation.png"), width=9, height=9)
-
-# Coverage for when there is nodal variation - priors
-ggplot(
-  subset(aggregate, (Z_additive == TRUE)&(RndEffects!="None")&(projected==FALSE)),
-  aes(x=Var, y=coverage)
-) +
-  geom_boxplot(aes(col=Prior)) + #guides(color=FALSE) +
-  coord_cartesian(ylim=c(0.5,1)) +
-  geom_abline(linetype=2, slope=0, intercept=.9) +
-  labs(x="", y="Coverage") +
-  theme_bw() +
-  theme(text=element_text(size=30), legend.position=c(0.8, 0.1)) +
-  scale_color_manual(values=brewer.pal(10,"Paired")[c(2,6)]) +
-  scale_x_discrete(labels=function(x) {parse(text=x)})
-ggsave(file.path(outdir, "coverage-variation.png"), width=9, height=9)
-
-
+ggsave(file.path(outdir, "coverage-with-and-without-variation.png"), width=18, height=9)
