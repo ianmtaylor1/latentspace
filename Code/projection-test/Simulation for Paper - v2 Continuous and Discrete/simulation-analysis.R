@@ -28,7 +28,7 @@ dashloc <- stri_locate(allres$excessvar, fixed="-")[,"start"]
 allres$excessvarcor <- ifelse(is.na(dashloc), "ind", substr(allres$excessvar, start=1, stop=dashloc - 1))
 allres$excessvarmag <- ifelse(is.na(dashloc), "none", substr(allres$excessvar, start=dashloc+1, stop=1000))
 allres$excessvarcor <- factor(allres$excessvarcor, levels=c("ind", "low", "high"))
-allres$excessvarmag <- factor(allres$excessvarmag, levels=c("large", "small", "none"))
+allres$excessvarmag <- factor(allres$excessvarmag, levels=c("none", "small", "large"))
 # Other factors for ordering
 allres$re.type <- factor(allres$re.type, levels=c("none", "invgamma", "halfcauchy"))
 
@@ -36,37 +36,38 @@ allres$re.type <- factor(allres$re.type, levels=c("none", "invgamma", "halfcauch
 
 var <- "col"
 num.re <- 2
-width <- height <- 6
+width <- 7
+height <- 4
 
 for (resp in c("continuous", "binary")) {
   
   # Plots of posterior means and variances for restricted vs non-network models
   allres %>%
-    filter(response == resp, num.re == num.re) %>%
+    filter(response == resp, num.re == num.re, excessvarmag != "none") %>%
     pivot_wider(id_cols=c("excessvarcor", "excessvarmag", "num.re", "response", "run", "rep", "design.seed", "error.seed"), 
                 names_from=re.type, values_from=paste0("delta_", var, "_mean")) %>%
     ggplot(aes(x=none, y=invgamma)) +
     geom_point(size=0.5) +
-    facet_wrap(excessvarmag ~ excessvarcor) +
+    facet_grid(excessvarmag ~ excessvarcor) +
     geom_abline(slope=1, intercept=0) +
     theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
     theme_bw() + 
-    ggtitle("Column Covariate Posterior Means") +
+    ggtitle("Receiver Covariate Posterior Means") +
     xlab("Non-network Model Posterior Mean") +
     ylab("Restricted Network Model Posterior Mean")
   ggsave(paste0(resp, "-mean-comparison.png"), width=width, height=height, units="in")
   
   allres %>%
-    filter(response == resp, num.re == num.re) %>%
+    filter(response == resp, num.re == num.re, excessvar != "none") %>%
     pivot_wider(id_cols=c("excessvarcor", "excessvarmag", "response", "run", "rep", "design.seed", "error.seed"), 
                 names_from=re.type, values_from=paste0("delta_", var, "_var")) %>%
     ggplot(aes(x=none, y=invgamma)) +
     geom_point(size=0.5) +
-    facet_wrap(excessvarmag ~ excessvarcor) +
+    facet_grid(excessvarmag ~ excessvarcor) +
     geom_abline(slope=1, intercept=0) +
     theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
     theme_bw() + 
-    ggtitle("Column Covariate Posterior Variances") +
+    ggtitle("Receiver Covariate Posterior Variances") +
     xlab("Non-network Model Posterior Variance") +
     ylab("Restricted Network Model Posterior Variance")
   ggsave(paste0(resp, "-variance-comparison.png"), width=width, height=height, units="in")
@@ -114,14 +115,14 @@ coverage_summary <- as.data.frame(
 )
 
 
-width <- 10
-height <- 6
+width <- 7
+height <- 4
 
 coverage_summary %>% 
-  filter(response == "binary", num.re == 2) %>%
+  filter(response == "binary", num.re == 2, excessvarmag != "none") %>%
   ggplot(aes(x=re.type, y=delta_col_coverage)) +
   geom_jitter(aes(color=re.type), width=0.1, height=0, size=0.75) +
-  facet_wrap(excessvarmag ~ excessvarcor) +
+  facet_grid(excessvarmag ~ excessvarcor) +
   geom_hline(yintercept=0.9, alpha=0.4) +
   geom_hline(yintercept=qbinom(0.95, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
   geom_hline(yintercept=qbinom(0.05, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
