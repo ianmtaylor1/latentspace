@@ -1,4 +1,4 @@
-library(foreach) 
+library(foreach)
 library(ggplot2)
 library(dplyr)
 library(tidyr)
@@ -39,6 +39,21 @@ num.re <- 2
 width <- 7
 height <- 4
 
+mylabeller <- function(x) {
+  if (colnames(x) == "excessvarcor") {
+    names <- rep("", length(x$excessvarcor))
+    names <- replace(names, x$excessvarcor == "ind", "No Correlation")
+    names <- replace(names, x$excessvarcor == "low", "Low Correlation")
+    names <- replace(names, x$excessvarcor == "high", "High Correlation")
+    return(list(excessvarcor = names))
+  } else if (colnames(x) == "excessvarmag") {
+    names <- rep("", length(x$excessvarmag))
+    names <- replace(names, x$excessvarmag == "small", "Small Magnitude")
+    names <- replace(names, x$excessvarmag == "large", "Large Mangitude")
+    return(list(excessvarmag = names))
+  }
+}
+
 for (resp in c("continuous", "binary")) {
   
   # Plots of posterior means and variances for restricted vs non-network models
@@ -48,7 +63,7 @@ for (resp in c("continuous", "binary")) {
                 names_from=re.type, values_from=paste0("delta_", var, "_mean")) %>%
     ggplot(aes(x=none, y=invgamma)) +
     geom_point(size=0.5) +
-    facet_grid(excessvarmag ~ excessvarcor) +
+    facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
     geom_abline(slope=1, intercept=0) +
     theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
     theme_bw() + 
@@ -63,7 +78,7 @@ for (resp in c("continuous", "binary")) {
                 names_from=re.type, values_from=paste0("delta_", var, "_var")) %>%
     ggplot(aes(x=none, y=invgamma)) +
     geom_point(size=0.5) +
-    facet_grid(excessvarmag ~ excessvarcor) +
+    facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
     geom_abline(slope=1, intercept=0) +
     theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
     theme_bw() + 
@@ -113,22 +128,29 @@ coverage_summary <- as.data.frame(
               betadelta_col_coverage = mean(betadelta_col_captured),
               betadelta_dyad_coverage = mean(betadelta_dyad_captured))
 )
+coverage_summary$prior <- rep("", nrow(coverage_summary))
+coverage_summary$prior <- replace(coverage_summary$prior, coverage_summary$re.type == "none", "No Random Effects")
+coverage_summary$prior <- replace(coverage_summary$prior, coverage_summary$re.type == "invgamma", "Inverse-Gamma")
+coverage_summary$prior <- replace(coverage_summary$prior, coverage_summary$re.type == "halfcauchy", "Half-Cauchy")
+coverage_summary$prior <- factor(coverage_summary$prior, levels=c("No Random Effects", "Inverse-Gamma", "Half-Cauchy"))
 
 
 width <- 7
-height <- 4
+height <- 6
 
 coverage_summary %>% 
   filter(response == "binary", num.re == 2, excessvarmag != "none") %>%
-  ggplot(aes(x=re.type, y=delta_col_coverage)) +
-  geom_jitter(aes(color=re.type), width=0.1, height=0, size=0.75) +
-  facet_grid(excessvarmag ~ excessvarcor) +
+  ggplot(aes(x=prior, y=delta_col_coverage)) +
+  geom_jitter(aes(color=prior), width=0.1, height=0, size=0.75) +
+  facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
   geom_hline(yintercept=0.9, alpha=0.4) +
   geom_hline(yintercept=qbinom(0.95, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
   geom_hline(yintercept=qbinom(0.05, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
   theme(aspect.ratio = 0.6, axis.text.x = element_text(angle=30, hjust=1)) +
   theme_bw() + 
+  theme(legend.position = "none", axis.text.x=element_text(angle=45, hjust=1, vjust=1)) +
   xlab("Model Random Effects") +
   ylab("90% Credible Interval Coverage") +
-  ggtitle("Credible Interval Coverage in Restricted Binary Network Regression")
+  ggtitle("Credible Interval Coverage in Restricted Binary Network Regression") +
+  labs(color="Random Effect Prior")
 ggsave("binary-coverage.png", width=width, height=height, units="in")
