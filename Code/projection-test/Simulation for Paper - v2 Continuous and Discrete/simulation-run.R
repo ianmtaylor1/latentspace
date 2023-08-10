@@ -14,10 +14,10 @@ library(digest)
 
 # Global parameters
 
-scratch.basedir <- "/scratch/summit/imtaylor@colostate.edu/net-reg-proj"
+scratch.basedir <- "/scratch/alpine/imtaylor@colostate.edu/restricted-network-regression/net-reg-proj"
 
-result.basedir <- "results"
-cores <- 12
+result.basedir <- here::here("Code", "projection-test", "Simulation for Paper - v2 Continuous and Discrete", "results")
+cores <- 16
 reps <- 200
 N <- 27
 
@@ -36,13 +36,13 @@ if (length(args) != 1) {
 }
 
 index.to.args <- function(idx) {
-  stopifnot(idx >= 0, idx < 7 * 3 * 2 * 2 * 20)
+  stopifnot(idx >= 0, idx < 7 * 3 * 2 * 2 * 100)
   
   # Pull out options with successive mods and integer division
   
   # Run: 20 options
-  run <- idx %% 20 + 1
-  idx <- idx %/% 20
+  run <- idx %% 100 + 1
+  idx <- idx %/% 100
   
   # Response: 2 options
   response.idx <- idx %% 2 + 1
@@ -167,101 +167,109 @@ delta.c <- delta[3]
 # Do the run
 
 # Directory where all result RDSs and CSVs will be saved
-savepath <- file.path(result.basedir, excessvar, re.type, 
+# Directory for intermediate RDS saves - one each rep
+tmpsave.dir <- file.path(scratch.basedir, excessvar, re.type, 
                       paste0("num_re_", num.re), response, paste0("run", run))
-dir.create(file.path(scratch.basedir, savepath), recursive=TRUE)
+# Location of final csv to output - one row per rep in this job
+finalsavepath <- file.path(result.basedir, paste0("job_", jobno, ".csv"))
+
+dir.create(file.path(tmpsavepath), recursive=TRUE)
 dir.create(result.basedir, recursive=TRUE)
 
-
-cl <- makeCluster(cores)
-registerDoParallel(cl)
-#registerDoSEQ()
-
-summary <- foreach(rep=seq_len(reps), .combine="rbind", .packages=c("digest")) %dopar% {
-  # Set seed predictably for error
-  error.seed <- strtoi(substr(digest(list(excessvar, num.re, response, run, rep)), 1, 6), base=16)
-  set.seed(error.seed)
+if (!file.exists(finalsavepath)) {
+  cl <- makeCluster(cores)
+  registerDoParallel(cl)
+  #registerDoSEQ()
   
-  # Generate error
-  Z <- intercept +
-    outer(c(Xr %*% beta.r), c(Xc %*% beta.c), "+") + # Sender and receiver covariates
-    outer(true.a, true.b, "+") + # Sender and receiver excess variation (possibly equal to zero)
-    matrix(rnorm(N^2), nrow=N, ncol=N) # Noise
-  for (i in seq_along(beta.d)) {
-    Z <- Z + Xd[,,i] * beta.d[i] # Each dyadic covariate
-  }
-  if (response == "continuous") {
-    Y <- Z
-  } else {
-    Y <- (Z >= 0) * 1
-  }
-  
-  if (!file.exists(file.path(scratch.basedir, savepath, paste0("rep", rep, ".RDS")))) {
-    # Fit model
-    res <- amenhs::ame(Y, Xrow = Xr, Xcol = Xc, Xdyad = Xd,
-                       family = ifelse(response=="continuous", "nrm", "bin"),
-                       halfcauchy = (re.type == "halfcauchy"),
-                       project = TRUE,
-                       rvar = (re.type != "none"),
-                       cvar = ((re.type != "none") && (num.re == 2)),
-                       dcor = FALSE,
-                       nscan = iter, burn = burn, odens = thin,
-                       print = FALSE, plot = FALSE, gof = FALSE, 
-                       seed = 2) # Different seed may help some of the errors?
+  summary <- foreach(rep=seq_len(reps), .combine="rbind", .packages=c("digest")) %dopar% {
+    # Set seed predictably for error
+    error.seed <- strtoi(substr(digest(list(excessvar, num.re, response, run, rep)), 1, 6), base=16)
+    set.seed(error.seed)
     
-    # We should have 4 columns in beta and delta
-    stopifnot(ncol(res$BETA) == 4, ncol(res$DELTA) == 4)
+    # Generate error
+    Z <- intercept +
+      outer(c(Xr %*% beta.r), c(Xc %*% beta.c), "+") + # Sender and receiver covariates
+      outer(true.a, true.b, "+") + # Sender and receiver excess variation (possibly equal to zero)
+      matrix(rnorm(N^2), nrow=N, ncol=N) # Noise
+    for (i in seq_along(beta.d)) {
+      Z <- Z + Xd[,,i] * beta.d[i] # Each dyadic covariate
+    }
+    if (response == "continuous") {
+      Y <- Z
+    } else {
+      Y <- (Z >= 0) * 1
+    }
     
-    # Save the fit object as an RDS file
-    # Save to scratch because the total amount of data will be HUGE (like 70 GB)
-    saveRDS(res, file.path(scratch.basedir, savepath, paste0("rep", rep, ".RDS")))
-  } else {
-    # If this run has been done already, just load it.
-    res <- readRDS(file.path(scratch.basedir, savepath, paste0("rep", rep, ".RDS")))
+    if (!file.exists(file.path(tmpsave.dir, paste0("rep", rep, ".RDS")))) {
+      # Fit model
+      res <- amenhs::ame(Y, Xrow = Xr, Xcol = Xc, Xdyad = Xd,
+                         family = ifelse(response=="continuous", "nrm", "bin"),
+                         halfcauchy = (re.type == "halfcauchy"),
+                         project = TRUE,
+                         rvar = (re.type != "none"),
+                         cvar = ((re.type != "none") && (num.re == 2)),
+                         dcor = FALSE,
+                         nscan = iter, burn = burn, odens = thin,
+                         print = FALSE, plot = FALSE, gof = FALSE, 
+                         seed = 2) # Different seed may help some of the errors?
+      
+      # We should have 4 columns in beta and delta
+      stopifnot(ncol(res$BETA) == 4, ncol(res$DELTA) == 4)
+      
+      # Save the fit object as an RDS file
+      # Save to scratch because the total amount of data will be HUGE (like 70 GB)
+      saveRDS(res, file.path(tmpsave.dir, paste0("rep", rep, ".RDS")))
+    } else {
+      # If this run has been done already, just load it.
+      res <- readRDS(file.path(tmpsave.dir, paste0("rep", rep, ".RDS")))
+    }
+    
+    #### Process the result into a data frame that can be output and rbinded
+    
+    
+    # Output one row of a dataframe to be combined by rbind/foreach
+    ret <- data.frame(
+      excessvar = excessvar,
+      re.type = re.type,
+      num.re = num.re,
+      response = response,
+      run = run,
+      rep = rep,
+      design.seed = design.seed,
+      error.seed = error.seed,
+      beta_int_true = intercept,
+      beta_row_true = beta.r,
+      beta_col_true = beta.c,
+      beta_dyad_true = beta.d,
+      delta_int_true = delta.intercept,
+      delta_row_true = delta.r,
+      delta_col_true = delta.c,
+      delta_dyad_true = delta.d,
+      stringsAsFactors = FALSE
+    )
+    
+    varnames <- c("int", "row", "col", "dyad")
+    for (i in 1:4) {
+      name <- varnames[i]
+      ret[[paste0("beta_", name, "_mean")]] <- mean(res$BETA[,i])
+      ret[[paste0("beta_", name, "_var")]] <- var(res$BETA[,i])
+      ret[[paste0("beta_", name, "_5q")]] <- quantile(res$BETA[,i], .05)
+      ret[[paste0("beta_", name, "_95q")]] <- quantile(res$BETA[,i], .95)
+      ret[[paste0("delta_", name, "_mean")]] <- mean(res$DELTA[,i])
+      ret[[paste0("delta_", name, "_var")]] <- var(res$DELTA[,i])
+      ret[[paste0("delta_", name, "_5q")]] <- quantile(res$DELTA[,i], .05)
+      ret[[paste0("delta_", name, "_95q")]] <- quantile(res$DELTA[,i], .95)
+    }
+    
+    # Output the data frame row
+    ret
   }
   
-  #### Process the result into a data frame that can be output and rbinded
+  stopCluster(cl)
   
+  write.csv(summary, finalsavepath, row.names=F)
   
-  # Output one row of a dataframe to be combined by rbind/foreach
-  ret <- data.frame(
-    excessvar = excessvar,
-    re.type = re.type,
-    num.re = num.re,
-    response = response,
-    run = run,
-    rep = rep,
-    design.seed = design.seed,
-    error.seed = error.seed,
-    beta_int_true = intercept,
-    beta_row_true = beta.r,
-    beta_col_true = beta.c,
-    beta_dyad_true = beta.d,
-    delta_int_true = delta.intercept,
-    delta_row_true = delta.r,
-    delta_col_true = delta.c,
-    delta_dyad_true = delta.d,
-    stringsAsFactors = FALSE
-  )
-  
-  varnames <- c("int", "row", "col", "dyad")
-  for (i in 1:4) {
-    name <- varnames[i]
-    ret[[paste0("beta_", name, "_mean")]] <- mean(res$BETA[,i])
-    ret[[paste0("beta_", name, "_var")]] <- var(res$BETA[,i])
-    ret[[paste0("beta_", name, "_5q")]] <- quantile(res$BETA[,i], .05)
-    ret[[paste0("beta_", name, "_95q")]] <- quantile(res$BETA[,i], .95)
-    ret[[paste0("delta_", name, "_mean")]] <- mean(res$DELTA[,i])
-    ret[[paste0("delta_", name, "_var")]] <- var(res$DELTA[,i])
-    ret[[paste0("delta_", name, "_5q")]] <- quantile(res$DELTA[,i], .05)
-    ret[[paste0("delta_", name, "_95q")]] <- quantile(res$DELTA[,i], .95)
-  }
-  
-  # Output the data frame row
-  ret
+} else {
+  cat("Result file already exists, stopping.")
 }
-
-stopCluster(cl)
-
-write.csv(summary, file.path(result.basedir, paste0("job_", jobno, ".csv")), row.names=F)
 
