@@ -114,7 +114,28 @@ edgerelplot <- ggraph(edgerelnet, layout="manual",
   theme(legend.position="none") 
 edgerelplot
 
-png(file.path(outdir, "fig1-example-dependene.png"), width=10, height=8, units="in", res = 150)
+png(file.path(outdir, "fig1-example-dependence.png"), width=10, height=8, units="in", res = 150)
 grid.arrange(statesmapplot, statesnetplot, examplenetplot, edgerelplot,
              nrow=2)
+dev.off()
+
+
+fig.width <- 5
+fig.height <- 4
+fig.res <- 150
+# Save individually for compositing with labels in the paper manually
+png(file.path(outdir, "fig1-example-dependence-A.png"), width=fig.width, height=fig.height, units="in", res=fig.res)
+print(statesmapplot)
+dev.off()
+
+png(file.path(outdir, "fig1-example-dependence-B.png"), width=fig.width, height=fig.height, units="in", res=fig.res)
+print(statesnetplot)
+dev.off()
+
+png(file.path(outdir, "fig1-example-dependence-C.png"), width=fig.width, height=fig.height, units="in", res=fig.res)
+print(examplenetplot)
+dev.off()
+
+png(file.path(outdir, "fig1-example-dependence-D.png"), width=fig.width, height=fig.height, units="in", res=fig.res)
+print(edgerelplot)
 dev.off()
