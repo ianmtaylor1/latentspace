@@ -157,9 +157,9 @@ Xmat[,4] <- c(t(matrix(Xc[,1], nrow=N, ncol=N)))
 # Calculate true delta, as a vector and as individual components
 delta <- beta + c(solve(t(Xmat) %*% Xmat) %*% (t(Xmat) %*% c(outer(true.a, true.b, "+"))))
 delta.intercept <- delta[1]
-delta.d <- delta[1]
-delta.r <- delta[2]
-delta.c <- delta[3]
+delta.d <- delta[2]
+delta.r <- delta[3]
+delta.c <- delta[4]
 
 ################################################################################
 ################################################################################
