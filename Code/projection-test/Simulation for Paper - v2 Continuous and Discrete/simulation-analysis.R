@@ -3,6 +3,7 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(stringi)
+library(hexbin)
 
 resultdir <- here::here("Code", "projection-test", "Simulation for Paper - v2 Continuous and Discrete", "results")
 #resultdir <- file.path("Z:", "tmp", "rnr_results_tmp")
@@ -53,6 +54,13 @@ mylabeller <- function(x) {
   }
 }
 
+# Create data for geom_text to create plot labels
+labeltext <- data.frame(
+  excessvarcor = factor(rep(c("ind", "low", "high"), 2), levels=c("ind", "low", "high")),
+  excessvarmag = factor(c(rep("small", 3), rep("large", 3)), levels=c("small", "large")),
+  label = paste0("G", seq(2, 7))
+)
+
 for (resp in c("continuous", "binary")) {
   
   # Plots of posterior means and variances for restricted vs non-network models
@@ -62,15 +70,18 @@ for (resp in c("continuous", "binary")) {
                 names_from=re.type, values_from=paste0("delta_", var, "_mean")) %>%
     ggplot(aes(x=none, y=invgamma)) +
     #geom_point(size=0.5) +
-    stat_density_2d(aes(fill = ..level..), geom = "polygon") +
+    #stat_density_2d(aes(fill = ..level..), geom = "polygon") +
+    geom_hex() +
+    scale_fill_continuous(type = "viridis") +
     facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
     geom_abline(slope=1, intercept=0) +
     theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
-    theme_bw() + 
+    theme_bw(base_family="serif") + 
     theme(legend.position = "none") +
     ggtitle("Receiver Covariate Posterior Means") +
     xlab("Non-network Model Posterior Mean") +
-    ylab("Restricted Network Model Posterior Mean")
+    ylab("Restricted Network Model Posterior Mean") + 
+    geom_text(data=labeltext, mapping=aes(x=-Inf, y=Inf, label=label), hjust=-1, vjust=2 )
   ggsave(file.path(figsavedir, paste0(resp, "-mean-comparison.png")), width=width, height=height, units="in")
   
   allres %>%
@@ -79,15 +90,18 @@ for (resp in c("continuous", "binary")) {
                 names_from=re.type, values_from=paste0("delta_", var, "_var")) %>%
     ggplot(aes(x=none, y=invgamma)) +
     #geom_point(size=0.5) +
-    stat_density_2d(aes(fill = ..level..), geom = "polygon") +
+    #stat_density_2d(aes(fill = ..level..), geom = "polygon") +
+    geom_hex() +
+    scale_fill_continuous(type = "viridis") +
     facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
     geom_abline(slope=1, intercept=0) +
     theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
-    theme_bw() + 
+    theme_bw(base_family="serif") + 
     theme(legend.position = "none") +
     ggtitle("Receiver Covariate Posterior Variances") +
     xlab("Non-network Model Posterior Variance") +
-    ylab("Restricted Network Model Posterior Variance")
+    ylab("Restricted Network Model Posterior Variance") + 
+    geom_text(data=labeltext, mapping=aes(x=-Inf, y=Inf, label=label), hjust=-1, vjust=2 )
   ggsave(file.path(figsavedir, paste0(resp, "-variance-comparison.png")), width=width, height=height, units="in")
 }
 
@@ -151,10 +165,11 @@ coverage_summary %>%
   geom_hline(yintercept=qbinom(0.95, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
   geom_hline(yintercept=qbinom(0.05, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
   theme(aspect.ratio = 0.6, axis.text.x = element_text(angle=30, hjust=1)) +
-  theme_bw() + 
+  theme_bw(base_family="serif") + 
   theme(legend.position = "none", axis.text.x=element_text(angle=45, hjust=1, vjust=1)) +
   xlab("Model Random Effects") +
   ylab("90% Credible Interval Coverage") +
   ggtitle("Credible Interval Coverage in Restricted Binary Network Regression") +
-  labs(color="Random Effect Prior", fill="Random Effect Prior")
+  labs(color="Random Effect Prior", fill="Random Effect Prior") + 
+  geom_text(data=labeltext, mapping=aes(x=Inf, y=-Inf, label=label), hjust=2, vjust=-1 )
 ggsave(file.path(figsavedir, "binary-coverage.png"), width=width, height=height, units="in")
