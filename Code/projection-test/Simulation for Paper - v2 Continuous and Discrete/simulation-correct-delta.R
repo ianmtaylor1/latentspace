@@ -19,13 +19,13 @@ N <- 27
 ################################################################################
 
 index.to.args <- function(idx) {
-  stopifnot(idx >= 0, idx < 7 * 3 * 2 * 2 * 20)
+  stopifnot(idx >= 0, idx < 7 * 3 * 2 * 2 * 100)
   
   # Pull out options with successive mods and integer division
   
-  # Run: 20 options
-  run <- idx %% 20 + 1
-  idx <- idx %/% 20
+  # Run: 100 options
+  run <- idx %% 100 + 1
+  idx <- idx %/% 100
   
   # Response: 2 options
   response.idx <- idx %% 2 + 1
@@ -68,7 +68,7 @@ gencancor <- function(X, Y, rho) {
 }
 
 
-deltas.df <- foreach(jobno=seq(0, 1679), .combine="rbind") %do% {
+deltas.df <- foreach(jobno=seq(0, 8399), .combine="rbind") %do% {
   
   arglist <- index.to.args(jobno)
   

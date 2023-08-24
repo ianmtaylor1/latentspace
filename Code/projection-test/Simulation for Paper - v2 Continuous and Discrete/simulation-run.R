@@ -173,7 +173,7 @@ tmpsave.dir <- file.path(scratch.basedir, excessvar, re.type,
 # Location of final csv to output - one row per rep in this job
 finalsavepath <- file.path(result.basedir, paste0("job_", jobno, ".csv"))
 
-dir.create(file.path(tmpsavepath), recursive=TRUE)
+dir.create(tmpsave.dir, recursive=TRUE)
 dir.create(result.basedir, recursive=TRUE)
 
 if (!file.exists(finalsavepath)) {
