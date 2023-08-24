@@ -5,8 +5,8 @@ library(tidyr)
 library(stringi)
 library(hexbin)
 
-#resultdir <- here::here("Code", "projection-test", "Simulation for Paper - v2 Continuous and Discrete", "results")
-resultdir <- file.path("Z:", "tmp", "rnr_results_tmp")
+resultdir <- here::here("Code", "projection-test", "Simulation for Paper - v2 Continuous and Discrete", "results")
+#resultdir <- file.path("Z:", "tmp", "rnr_results_tmp")
 
 figsavedir <- here::here("Code", "projection-test", "Simulation for Paper - v2 Continuous and Discrete")
 
