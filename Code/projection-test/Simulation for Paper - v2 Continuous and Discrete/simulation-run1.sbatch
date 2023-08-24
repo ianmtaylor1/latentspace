@@ -1,7 +1,7 @@
 #!/bin/bash
 
 #SBATCH --job-name latentspace_projections
-#SBATCH --array=0-999
+#SBATCH --array=1944,2034,2136,5454,5662
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=16
 #SBATCH --partition=amilan
