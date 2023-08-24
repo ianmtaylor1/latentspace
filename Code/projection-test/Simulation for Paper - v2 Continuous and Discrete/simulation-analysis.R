@@ -3,26 +3,26 @@ library(ggplot2)
 library(dplyr)
 library(tidyr)
 library(stringi)
+library(hexbin)
 
+#resultdir <- here::here("Code", "projection-test", "Simulation for Paper - v2 Continuous and Discrete", "results")
+resultdir <- file.path("Z:", "tmp", "rnr_results_tmp")
+
+figsavedir <- here::here("Code", "projection-test", "Simulation for Paper - v2 Continuous and Discrete")
 
 # Read in all csv's, append into one dataframe
-allres <- foreach(f=list.files("results", pattern="^job.*\\.csv"), .combine="rbind") %do% {
-  read.csv(file.path("results", f), stringsAsFactors = F)
+allres <- foreach(f=list.files(resultdir, pattern="^job.*\\.csv"), .combine="rbind") %do% {
+  cat(f, "\n")
+  read.csv(file.path(resultdir, f), stringsAsFactors = F)
 }
+
 # Overwrite correct true deltas
-truedeltas <- read.csv(file.path("results", "true_deltas.csv"), stringsAsFactors = F)
-seedsdone <- c()
-for (i in seq_len(nrow(truedeltas))) {
-  # For every row in the true deltas df, write their values to rows in allres with
-  # the same design.seed. Avoid redundant work caused by duplicate design seeds
-  if (!(truedeltas[i,"design.seed"] %in% seedsdone)) {
-    rowidx <- allres[,"design.seed"] == truedeltas[i,"design.seed"]
-    for (truecol in c("delta_int_true", "delta_row_true", "delta_col_true", "delta_dyad_true")) {
-      allres[rowidx, truecol] <- truedeltas[i, truecol]
-    }
-    seedsdone <- c(seedsdone, truedeltas[i,"design.seed"])
-  }
-}
+truedeltas <- read.csv(file.path(resultdir, "true_deltas.csv"), stringsAsFactors = F) |>
+  group_by(design.seed) |>
+  reframe(delta_int_true=unique(delta_int_true), delta_row_true=unique(delta_row_true), delta_col_true=unique(delta_col_true), delta_dyad_true=unique(delta_dyad_true))
+allres <- allres |> rows_update(truedeltas, by="design.seed", unmatched = "ignore")
+
+
 # Split the excess variation variable into correlation and magnitude
 dashloc <- stri_locate(allres$excessvar, fixed="-")[,"start"]
 allres$excessvarcor <- ifelse(is.na(dashloc), "ind", substr(allres$excessvar, start=1, stop=dashloc - 1))
@@ -54,6 +54,13 @@ mylabeller <- function(x) {
   }
 }
 
+# Create data for geom_text to create plot labels
+labeltext <- data.frame(
+  excessvarcor = factor(rep(c("ind", "low", "high"), 2), levels=c("ind", "low", "high")),
+  excessvarmag = factor(c(rep("small", 3), rep("large", 3)), levels=c("small", "large")),
+  label = paste0("G", seq(2, 7))
+)
+
 for (resp in c("continuous", "binary")) {
   
   # Plots of posterior means and variances for restricted vs non-network models
@@ -62,30 +69,40 @@ for (resp in c("continuous", "binary")) {
     pivot_wider(id_cols=c("excessvarcor", "excessvarmag", "num.re", "response", "run", "rep", "design.seed", "error.seed"), 
                 names_from=re.type, values_from=paste0("delta_", var, "_mean")) %>%
     ggplot(aes(x=none, y=invgamma)) +
-    geom_point(size=0.5) +
+    #geom_point(size=0.5) +
+    #stat_density_2d(aes(fill = ..level..), geom = "polygon") +
+    geom_hex() +
+    scale_fill_continuous(type = "viridis") +
     facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
     geom_abline(slope=1, intercept=0) +
     theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
-    theme_bw() + 
+    theme_bw(base_family="serif") + 
+    theme(legend.position = "none") +
     ggtitle("Receiver Covariate Posterior Means") +
     xlab("Non-network Model Posterior Mean") +
-    ylab("Restricted Network Model Posterior Mean")
-  ggsave(paste0(resp, "-mean-comparison.png"), width=width, height=height, units="in")
+    ylab("Restricted Network Model Posterior Mean") + 
+    geom_text(data=labeltext, mapping=aes(x=-Inf, y=Inf, label=label), hjust=-1, vjust=2 )
+  ggsave(file.path(figsavedir, paste0(resp, "-mean-comparison.png")), width=width, height=height, units="in")
   
   allres %>%
     filter(response == resp, num.re == num.re, excessvar != "none") %>%
     pivot_wider(id_cols=c("excessvarcor", "excessvarmag", "response", "run", "rep", "design.seed", "error.seed"), 
                 names_from=re.type, values_from=paste0("delta_", var, "_var")) %>%
     ggplot(aes(x=none, y=invgamma)) +
-    geom_point(size=0.5) +
+    #geom_point(size=0.5) +
+    #stat_density_2d(aes(fill = ..level..), geom = "polygon") +
+    geom_hex() +
+    scale_fill_continuous(type = "viridis") +
     facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
     geom_abline(slope=1, intercept=0) +
     theme(aspect.ratio = 0.75, axis.text.x = element_text(angle=30, hjust=1)) +
-    theme_bw() + 
+    theme_bw(base_family="serif") + 
+    theme(legend.position = "none") +
     ggtitle("Receiver Covariate Posterior Variances") +
     xlab("Non-network Model Posterior Variance") +
-    ylab("Restricted Network Model Posterior Variance")
-  ggsave(paste0(resp, "-variance-comparison.png"), width=width, height=height, units="in")
+    ylab("Restricted Network Model Posterior Variance") + 
+    geom_text(data=labeltext, mapping=aes(x=-Inf, y=Inf, label=label), hjust=-1, vjust=2 )
+  ggsave(file.path(figsavedir, paste0(resp, "-variance-comparison.png")), width=width, height=height, units="in")
 }
 
 ####### Coverage ###############################################################
@@ -141,16 +158,18 @@ height <- 6
 coverage_summary %>% 
   filter(response == "binary", num.re == 2, excessvarmag != "none") %>%
   ggplot(aes(x=prior, y=delta_col_coverage)) +
-  geom_jitter(aes(color=prior), width=0.1, height=0, size=0.75) +
+  #geom_jitter(aes(color=prior), width=0.1, height=0, size=0.75) +
+  geom_violin(aes(color=prior, fill=prior)) +
   facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
   geom_hline(yintercept=0.9, alpha=0.4) +
   geom_hline(yintercept=qbinom(0.95, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
   geom_hline(yintercept=qbinom(0.05, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
   theme(aspect.ratio = 0.6, axis.text.x = element_text(angle=30, hjust=1)) +
-  theme_bw() + 
+  theme_bw(base_family="serif") + 
   theme(legend.position = "none", axis.text.x=element_text(angle=45, hjust=1, vjust=1)) +
   xlab("Model Random Effects") +
   ylab("90% Credible Interval Coverage") +
   ggtitle("Credible Interval Coverage in Restricted Binary Network Regression") +
-  labs(color="Random Effect Prior")
-ggsave("binary-coverage.png", width=width, height=height, units="in")
+  labs(color="Random Effect Prior", fill="Random Effect Prior") + 
+  geom_text(data=labeltext, mapping=aes(x=Inf, y=-Inf, label=label), hjust=2, vjust=-1 )
+ggsave(file.path(figsavedir, "binary-coverage.png"), width=width, height=height, units="in")
