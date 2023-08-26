@@ -91,7 +91,7 @@ voteplot <- ggraph(votenet, layout="manual",
         start_cap=label_rect(voter, padding = margin(labelpad, labelpad, labelpad, labelpad, "mm")), 
         end_cap=label_rect(song, padding = margin(labelpad, labelpad, labelpad, labelpad, "mm"))),
     arrow = arrow(type = "closed", length=unit(arrowsize, "pt"))) +
-  geom_node_label(aes(label=nodename)) +
+  geom_node_label(aes(label=nodename), family="serif") +
   theme_graph(base_family="serif") +
   scale_edge_width_continuous(range=c(0.1,1.2), trans=scales::exp_trans(1.4)) +
   scale_edge_alpha_continuous(range=c(0.1,1), trans=scales::exp_trans(1.1)) +
@@ -114,7 +114,7 @@ labelpad <- 2
 
 borderplot <- ggraph(bordernet, layout="igraph", algorithm="dh") +
   geom_edge_link() +
-  geom_node_label(aes(label=nodename))+
+  geom_node_label(aes(label=nodename), family="serif")+
   theme_graph(base_family="serif")
 
 ################################################################################
@@ -130,7 +130,7 @@ fig.width <- 9
 fig.height <- 6
 fig.res <- 150
 
-png(file.path(plotdir, "eurovision-votes-network.png"), width=9, height=6, units="in", res=fig.res)
+png(file.path(plotdir, "eurovision-votes-network.png"), width=9, height=5, units="in", res=fig.res)
 print(voteplot)
 dev.off()
 
@@ -138,10 +138,10 @@ png(file.path(plotdir, "eurovision-country-map.png"), width=10, height=6, units=
 print(mapplot)
 dev.off()
 
-png(file.path(plotdir, "eurovision-country-borders.png"), width=10, height=5, units="in", res=fig.res)
+png(file.path(plotdir, "eurovision-country-borders.png"), width=9, height=5, units="in", res=fig.res)
 print(borderplot)
 dev.off()
 
-png(file.path(plotdir, "eurovision-covariates.png"), width=6, height=6, units="in", res=fig.res)
+png(file.path(plotdir, "eurovision-covariates.png"), width=6, height=4, units="in", res=fig.res)
 print(covariateplot)
 dev.off()
