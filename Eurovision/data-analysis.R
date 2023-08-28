@@ -6,6 +6,10 @@ library(ggplot2)
 library(ggrepel)
 library(foreach)
 library(here)
+library(knitr)
+library(kableExtra)
+library(dplyr)
+library(tidyr)
 
 plotdir <- here("Eurovision", "plots")
 resultdir <- here("Eurovision", "2015results")
@@ -105,8 +109,6 @@ apply(res.proj$DELTA, MARGIN=2, FUN=quantile, probs=c(0.025, 0.25, 0.5, 0.75, 0.
 covars <- c("LogMedianOdds.col", "LogPopulation.col", "LogGDP.col", ".dyad")
 displaynames <- c("Log Betting Odds", "Log Population", "Log GDP per Capita", "Country Contiguity")
 
-
-
 ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
   covar.name <- covars[i]
   display.name <- displaynames[i]
@@ -164,6 +166,31 @@ ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected)) +
   coord_cartesian(ylim=c(-1.5, 1.5))
 
 dev.off()
+
+
+################################################################################
+# Compare magnitude of posterior mean and CI width in table format
+dp <- function(x, places) {
+  format(round(x, places), nsmall=places)
+}
+
+ci.df <- ci.df |> mutate(Width=High - Low)
+
+projected.ci.df <- ci.df |> filter(Projected=="Projected Column Effects")
+other.ci.df <- ci.df |> filter(Projected!="Projected Column Effects")
+
+projected.ci.df |> 
+  inner_join(other.ci.df, by="Covariate") |>
+  mutate(MeanRatio = Mean.x / Mean.y,
+         WidthRatio = Width.x / Width.y,
+         TableText = paste0(dp(MeanRatio, 3), ", ", dp(WidthRatio, 3))) |>
+  select(Covariate, `Random Effects`=Projected.y, MeanRatio, WidthRatio, TableText) |>
+  pivot_wider(id_cols="Random Effects", names_from="Covariate", values_from=c("TableText")) |>
+  kable(format="latex", booktabs=TRUE) |>
+  add_header_above(c(" "=1,"Covariate"=4))
+
+################################################################################
+# Plot changes in random effect values (posterior means)
 
 pdf(file.path(resultdir, "Eurovision-results-plots.pdf"), width=8, height=8)
 
