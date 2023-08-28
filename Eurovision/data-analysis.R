@@ -1,19 +1,23 @@
 # Code to do that data analysis on the Eurovision data
 
-library(amenhs)
+#library(amenhs)
 library(coda)
 library(ggplot2)
 library(ggrepel)
 library(foreach)
+library(here)
+
+plotdir <- here("Eurovision", "plots")
+resultdir <- here("Eurovision", "2015results")
 
 # Read in all the csv files with response and covariates
-Y <- read.csv("2015data/votes-ranks.csv", row.names=1)
-Xc.gender <- read.csv("2015data/covariate-gender.csv", row.names=1, stringsAsFactors=FALSE)
-Xd.lang <- read.csv("2015data/covariate-language.csv", row.names=1)
-Xd.contig <- read.csv("2015data/covariate-contig.csv", row.names=1)
-Xc.odds <- read.csv("2015data/covariate-odds.csv", row.names=1)
-Xc.pop <- read.csv("2015data/covariate-population.csv", row.names=1)
-Xc.gdp <- read.csv("2015data/covariate-gdp.csv", row.names=1)
+Y <- read.csv(here("Eurovision", "2015data", "votes-ranks.csv"), row.names=1)
+Xc.gender <- read.csv(here("Eurovision", "2015data", "covariate-gender.csv"), row.names=1, stringsAsFactors=FALSE)
+Xd.lang <- read.csv(here("Eurovision", "2015data", "covariate-language.csv"), row.names=1)
+Xd.contig <- read.csv(here("Eurovision", "2015data", "covariate-contig.csv"), row.names=1)
+Xc.odds <- read.csv(here("Eurovision", "2015data", "covariate-odds.csv"), row.names=1)
+Xc.pop <- read.csv(here("Eurovision", "2015data", "covariate-population.csv"), row.names=1)
+Xc.gdp <- read.csv(here("Eurovision", "2015data", "covariate-gdp.csv"), row.names=1)
 
 # Which countries are we restricting the analysis to?
 countries.in.final <- row.names(Xc.gender)[Xc.gender[,"Female"] != "#N/A"]
@@ -38,37 +42,37 @@ nscan <- 5000000
 burn <- 25000
 odens <- 1000
 
-if (file.exists("2015results/no-rnd-effects.RDS")) {
-  res.no.re <- readRDS("2015results/no-rnd-effects.RDS")
+if (file.exists(file.path(resultdir, "no-rnd-effects.RDS"))) {
+  res.no.re <- readRDS(file.path(resultdir, "no-rnd-effects.RDS"))
 } else {
   res.no.re <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
                            Xcol=Xc, Xdyad=Xd, 
                            family="rrl", rvar=FALSE, cvar=FALSE, dcor=FALSE,
                            plot=FALSE, gof=FALSE, print=TRUE,
                            nscan=nscan, burn=burn, odens=odens)
-  saveRDS(res.no.re, "2015results/no-rnd-effects.RDS")
+  saveRDS(res.no.re, file.path(resultdir, "no-rnd-effects.RDS"))
 }
 
-if (file.exists("2015results/standard.RDS")) {
-  res <- readRDS("2015results/standard.RDS")
+if (file.exists(file.path(resultdir, "standard.RDS"))) {
+  res <- readRDS(file.path(resultdir, "standard.RDS"))
 } else {
   res <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
                      Xcol=Xc, Xdyad=Xd, 
                      family="rrl", rvar=FALSE, cvar=TRUE, dcor=FALSE,
                      plot=FALSE, gof=FALSE, print=TRUE,
                      nscan=nscan, burn=burn, odens=odens)
-  saveRDS(res, "2015results/standard.RDS")
+  saveRDS(res, file.path(resultdir, "standard.RDS"))
 }
 
-if (file.exists("2015results/hc-and-projection.RDS")) {
-  res.proj <- readRDS("2015results/hc-and-projection.RDS")
+if (file.exists(file.path(resultdir, "hc-and-projection.RDS"))) {
+  res.proj <- readRDS(file.path(resultdir, "hc-and-projection.RDS"))
 } else {
   res.proj <- amenhs::ame(Y=as.matrix(Y[countries.in.final,countries.in.final]), 
                           Xcol=Xc, Xdyad=Xd,
                           family="rrl", rvar=FALSE, cvar=TRUE, halfcauchy=TRUE, project=TRUE, dcor=FALSE,
                           plot=FALSE, gof=FALSE, print=TRUE,
                           nscan=nscan, burn=burn, odens=odens)
-  saveRDS(res.proj, "2015results/hc-and-projection.RDS")
+  saveRDS(res.proj, file.path(resultdir, "hc-and-projection.RDS"))
 }
 
 ################################################################################
@@ -146,7 +150,7 @@ ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
 
 ci.df$Projected <- factor(ci.df$Projected, levels=c("No Random Effects", "Unprojected Column Effects", "Projected Column Effects"))
 
-png("2015results/Eurovision-results-CI.png", width=900, height=600)
+png(file.path(resultdir, "Eurovision-results-CI.png"), width=900, height=600)
 
 ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected)) +
   geom_errorbar(size=1.5, width=0.3, position=position_dodge(width=0.5)) +
@@ -161,7 +165,7 @@ ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected)) +
 
 dev.off()
 
-pdf("2015results/Eurovision-results-plots.pdf", width=8, height=8)
+pdf(file.path(resultdir, "Eurovision-results-plots.pdf"), width=8, height=8)
 
 # Posterior means for column random effects with/without projections
 BPM <- data.frame(
