@@ -185,9 +185,9 @@ projected.ci.df |>
          WidthRatio = Width.x / Width.y,
          TableText = paste0(dp(MeanRatio, 3), ", ", dp(WidthRatio, 3))) |>
   select(Covariate, `Random Effects`=Projected.y, MeanRatio, WidthRatio, TableText) |>
-  pivot_wider(id_cols="Random Effects", names_from="Covariate", values_from=c("TableText")) |>
+  pivot_wider(id_cols="Covariate", names_from="Random Effects", values_from=c("TableText")) |>
   kable(format="latex", booktabs=TRUE) |>
-  add_header_above(c(" "=1,"Covariate"=4))
+  add_header_above(c(" "=1,"Random Effects"=2))
 
 ################################################################################
 # Plot changes in random effect values (posterior means)
