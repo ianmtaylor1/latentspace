@@ -114,8 +114,8 @@ ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
   display.name <- displaynames[i]
   
   covar.samples <- data.frame(
-    Projected=c(rep("Projected Column Effects", nrow(res.proj$DELTA)), 
-                rep("Unprojected Column Effects", nrow(res.proj$BETA)),
+    Projected=c(rep("Restricted Network Model", nrow(res.proj$DELTA)), 
+                rep("Non-Restricted Network Model", nrow(res.proj$BETA)),
                 rep("No Random Effects", nrow(res.no.re$BETA))),
     Samples=c(res.proj$DELTA[,covar.name], 
               res.proj$BETA[,covar.name],
@@ -123,7 +123,7 @@ ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
     stringsAsFactors=FALSE)
   covar.ci <- data.frame(
     Covariate=rep(display.name, 3),
-    Projected=c("Projected Column Effects","Unprojected Column Effects", "No Random Effects"),
+    Projected=c("Restricted Network Model","Non-Restricted Network Model", "No Random Effects"),
     Mean=c(mean(res.proj$DELTA[,covar.name]), 
            mean(res.proj$BETA[,covar.name]),
            mean(res.no.re$BETA[,covar.name])),
@@ -150,7 +150,7 @@ ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
   covar.ci
 }
 
-ci.df$Projected <- factor(ci.df$Projected, levels=c("No Random Effects", "Unprojected Column Effects", "Projected Column Effects"))
+ci.df$Projected <- factor(ci.df$Projected, levels=c("No Random Effects", "Non-Restricted Network Model", "Restricted Network Model"))
 
 png(file.path(resultdir, "Eurovision-results-CI.png"), width=900, height=600)
 
@@ -176,18 +176,18 @@ dp <- function(x, places) {
 
 ci.df <- ci.df |> mutate(Width=High - Low)
 
-projected.ci.df <- ci.df |> filter(Projected=="Projected Column Effects")
-other.ci.df <- ci.df |> filter(Projected!="Projected Column Effects")
+projected.ci.df <- ci.df |> filter(Projected=="Restricted Network Model")
+other.ci.df <- ci.df |> filter(Projected!="Restricted Network Model")
 
 projected.ci.df |> 
   inner_join(other.ci.df, by="Covariate") |>
   mutate(MeanRatio = Mean.x / Mean.y,
          WidthRatio = Width.x / Width.y,
          TableText = paste0(dp(MeanRatio, 3), ", ", dp(WidthRatio, 3))) |>
-  select(Covariate, `Random Effects`=Projected.y, MeanRatio, WidthRatio, TableText) |>
-  pivot_wider(id_cols="Covariate", names_from="Random Effects", values_from=c("TableText")) |>
+  select(Covariate, Model=Projected.y, MeanRatio, WidthRatio, TableText) |>
+  pivot_wider(id_cols="Covariate", names_from="Model", values_from=c("TableText")) |>
   kable(format="latex", booktabs=TRUE) |>
-  add_header_above(c(" "=1,"Random Effects"=2))
+  add_header_above(c(" "=1,"Comparison Model"=2))
 
 ################################################################################
 # Plot changes in random effect values (posterior means)
