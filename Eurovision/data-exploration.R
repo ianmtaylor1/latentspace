@@ -120,7 +120,10 @@ borderplot <- ggraph(bordernet, layout="igraph", algorithm="dh") +
 ################################################################################
 # Plot covariates
 
-covariateplot <- ggpairs(as.data.frame(Xc), diag=list(continuous="densityDiag")) +
+pairsdf <- as.data.frame(Xc)
+names(pairsdf) <- c("Log Betting Odds", "Log Population", "Log GDP per Capita")
+
+covariateplot <- ggpairs(pairsdf, diag=list(continuous="densityDiag")) +
   theme_bw(base_family = "serif")
 
 ################################################################################
