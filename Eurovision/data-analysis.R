@@ -151,6 +151,7 @@ ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
 }
 
 ci.df$Projected <- factor(ci.df$Projected, levels=c("No Random Effects", "Non-Restricted Network Model", "Restricted Network Model"))
+ci.df$Covariate <- factor(ci.df$Covariate, levels=c("Country Contiguity", "Log Betting Odds", "Log Population", "Log GDP per Capita"))
 
 png(file.path(resultdir, "Eurovision-results-CI.png"), width=900, height=600)
 
@@ -161,7 +162,7 @@ ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected)) +
   #ggtitle("Posterior means and 90% credible intervals", 
   #        subtitle="Model Fixed Effects") +
   labs(y="Estimate", color="", x="") +
-  theme_bw() + 
+  theme_bw(base_family="serif") + 
   theme(text=element_text(size=25), legend.position=c(0.75, 0.85)) +
   coord_cartesian(ylim=c(-1.5, 1.5))
 
@@ -185,34 +186,35 @@ projected.ci.df |>
          WidthRatio = Width.x / Width.y,
          TableText = paste0(dp(MeanRatio, 3), ", ", dp(WidthRatio, 3))) |>
   select(Covariate, Model=Projected.y, MeanRatio, WidthRatio, TableText) |>
-  pivot_wider(id_cols="Covariate", names_from="Model", values_from=c("TableText")) |>
+  pivot_wider(id_cols="Covariate", names_from="Model", values_from=c("TableText"), names_sort = TRUE) |>
+  sort() |>
   kable(format="latex", booktabs=TRUE) |>
   add_header_above(c(" "=1,"Comparison Model"=2))
 
 ################################################################################
 # Plot changes in random effect values (posterior means)
 
-pdf(file.path(resultdir, "Eurovision-results-plots.pdf"), width=8, height=8)
-
-# Posterior means for column random effects with/without projections
-BPM <- data.frame(
-  Projected=res.proj$BPM.ORTH,
-  NotProjected=res.proj$BPM,
-  Country=names(res.proj$BPM),
-  stringsAsFactors=FALSE
-)
-BPM$AbsChg <- abs(BPM$Projected - BPM$NotProjected)
-BPM$ChgRnk <- rank(BPM$AbsChg)
-BPM$TopMovers <- ifelse(BPM$ChgRnk >= 23, BPM$Country, NA)
-
-# Posterior mean of column effect scatterplots
-ggplot(BPM, aes(x=NotProjected, y=Projected)) + 
-  geom_point() +
-  ggtitle("Column Random Effects", subtitle="Posterior means before and after projections") +
-  geom_text_repel(aes(label=TopMovers), size=3.5) +
-  geom_abline(slope=1, intercept=0, color="red")
-# Absolute change by country
-ggplot(BPM, aes(x=Country, y=AbsChg)) + 
-  geom_bar(stat="identity")
-
-dev.off()
+# pdf(file.path(resultdir, "Eurovision-results-plots.pdf"), width=8, height=8)
+# 
+# # Posterior means for column random effects with/without projections
+# BPM <- data.frame(
+#   Projected=res.proj$BPM.ORTH,
+#   NotProjected=res.proj$BPM,
+#   Country=names(res.proj$BPM),
+#   stringsAsFactors=FALSE
+# )
+# BPM$AbsChg <- abs(BPM$Projected - BPM$NotProjected)
+# BPM$ChgRnk <- rank(BPM$AbsChg)
+# BPM$TopMovers <- ifelse(BPM$ChgRnk >= 23, BPM$Country, NA)
+# 
+# # Posterior mean of column effect scatterplots
+# ggplot(BPM, aes(x=NotProjected, y=Projected)) + 
+#   geom_point() +
+#   ggtitle("Column Random Effects", subtitle="Posterior means before and after projections") +
+#   geom_text_repel(aes(label=TopMovers), size=3.5) +
+#   geom_abline(slope=1, intercept=0, color="red")
+# # Absolute change by country
+# ggplot(BPM, aes(x=Country, y=AbsChg)) + 
+#   geom_bar(stat="identity")
+# 
+# dev.off()
