@@ -155,21 +155,46 @@ coverage_summary$prior <- factor(coverage_summary$prior, levels=c("No Random Eff
 width <- 7
 height <- 6
 
-coverage_summary %>% 
-  filter(response == "binary", num.re == 2, excessvarmag != "none") %>%
-  ggplot(aes(x=prior, y=delta_col_coverage)) +
-  #geom_jitter(aes(color=prior), width=0.1, height=0, size=0.75) +
-  geom_violin(aes(color=prior, fill=prior)) +
+plot.addins <- function(gg) {
+  gg + geom_violin(aes(color=prior, fill=prior)) +
   facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
   geom_hline(yintercept=0.9, alpha=0.4) +
   geom_hline(yintercept=qbinom(0.95, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
   geom_hline(yintercept=qbinom(0.05, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
-  theme(aspect.ratio = 0.6, axis.text.x = element_text(angle=30, hjust=1)) +
+  theme(aspect.ratio = 0.6, axis.text.x = element_text(angle=30, hjust=1)) + 
+  coord_cartesian(ylim=c(0,1)) +
   theme_bw(base_family="serif") + 
   theme(legend.position = "none", axis.text.x=element_text(angle=45, hjust=1, vjust=1)) +
   xlab("Model Random Effects") +
   ylab("90% Credible Interval Coverage") +
-  ggtitle("Credible Interval Coverage in Restricted Binary Network Regression") +
   labs(color="Random Effect Prior", fill="Random Effect Prior") + 
   geom_text(data=labeltext, mapping=aes(x=Inf, y=-Inf, label=label), hjust=2, vjust=-1 )
+}
+
+(coverage_summary %>% 
+  filter(response == "binary", num.re == 2, excessvarmag != "none") %>%
+  ggplot(aes(x=prior, y=delta_col_coverage)) +
+  ggtitle("Credible Interval Coverage in Restricted Binary Network Regression")) |>
+  plot.addins()
+ggsave(file.path(figsavedir, "binary-coverage-restricted.png"), width=width, height=height, units="in")
+
+(coverage_summary %>% 
+  filter(response == "binary", num.re == 2, excessvarmag != "none") %>%
+  ggplot(aes(x=prior, y=beta_col_coverage)) +
+  ggtitle("Credible Interval Coverage in Binary Network Regression")) |>
+  plot.addins()
 ggsave(file.path(figsavedir, "binary-coverage.png"), width=width, height=height, units="in")
+
+(coverage_summary %>% 
+  filter(response == "continuous", num.re == 2, excessvarmag != "none") %>%
+  ggplot(aes(x=prior, y=delta_col_coverage)) +
+  ggtitle("Credible Interval Coverage in Restricted Continuous Network Regression")) |>
+  plot.addins()
+ggsave(file.path(figsavedir, "continuous-coverage-restricted.png"), width=width, height=height, units="in")
+
+(coverage_summary %>% 
+  filter(response == "continuous", num.re == 2, excessvarmag != "none") %>%
+  ggplot(aes(x=prior, y=beta_col_coverage)) +
+  ggtitle("Credible Interval Coverage in Continuous Network Regression")) |>
+  plot.addins()
+ggsave(file.path(figsavedir, "continuous-coverage.png"), width=width, height=height, units="in")
