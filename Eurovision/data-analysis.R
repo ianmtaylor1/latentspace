@@ -10,6 +10,7 @@ library(knitr)
 library(kableExtra)
 library(dplyr)
 library(tidyr)
+library(reshape)
 
 plotdir <- here("Eurovision", "plots")
 resultdir <- here("Eurovision", "2015results")
@@ -155,13 +156,14 @@ ci.df$Covariate <- factor(ci.df$Covariate, levels=c("Country Contiguity", "Log B
 
 png(file.path(resultdir, "Eurovision-results-CI.png"), width=900, height=600)
 
-ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected)) +
-  geom_errorbar(size=1.5, width=0.3, position=position_dodge(width=0.5)) +
-  geom_point(size=5, position=position_dodge(width=0.5)) +
+ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected, shape=Projected)) +
+  geom_pointrange(position=position_dodge(width=0.5), size=1.2, fatten=3) +
+  #geom_errorbar(size=1.5, width=0.3, position=position_dodge(width=0.5)) +
+  #geom_point(size=5, position=position_dodge(width=0.5)) +
   geom_hline(yintercept=0) +
   #ggtitle("Posterior means and 90% credible intervals", 
   #        subtitle="Model Fixed Effects") +
-  labs(y="Estimate", color="", x="") +
+  labs(y="Estimate", color="", shape="", x="") +
   theme_bw(base_family="serif") + 
   theme(text=element_text(size=25), legend.position=c(0.75, 0.85)) +
   coord_cartesian(ylim=c(-1.5, 1.5))
@@ -187,7 +189,7 @@ projected.ci.df |>
          TableText = paste0(dp(MeanRatio, 3), ", ", dp(WidthRatio, 3))) |>
   select(Covariate, Model=Projected.y, MeanRatio, WidthRatio, TableText) |>
   pivot_wider(id_cols="Covariate", names_from="Model", values_from=c("TableText"), names_sort = TRUE) |>
-  sort() |>
+  sort_df() |>
   kable(format="latex", booktabs=TRUE) |>
   add_header_above(c(" "=1,"Comparison Model"=2))
 
