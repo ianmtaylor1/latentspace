@@ -151,6 +151,8 @@ coverage_summary$prior <- replace(coverage_summary$prior, coverage_summary$re.ty
 coverage_summary$prior <- replace(coverage_summary$prior, coverage_summary$re.type == "halfcauchy", "Half-Cauchy")
 coverage_summary$prior <- factor(coverage_summary$prior, levels=c("No Random Effects", "Inverse-Gamma", "Half-Cauchy"))
 
+plotcolors <- RColorBrewer::brewer.pal(name="Set1", n=3)
+names(plotcolors) <- c("No Random Effects", "Inverse-Gamma", "Half-Cauchy")
 
 width <- 7
 height <- 6
@@ -168,7 +170,9 @@ plot.addins <- function(gg) {
   xlab("Model Random Effects") +
   ylab("90% Credible Interval Coverage") +
   labs(color="Random Effect Prior", fill="Random Effect Prior") + 
-  geom_text(data=labeltext, mapping=aes(x=Inf, y=-Inf, label=label), hjust=2, vjust=-1 )
+  geom_text(data=labeltext, mapping=aes(x=Inf, y=-Inf, label=label), hjust=2, vjust=-1 ) +
+  scale_color_manual(values=plotcolors) +
+  scale_fill_manual(values=plotcolors)
 }
 
 (coverage_summary %>% 
@@ -179,7 +183,7 @@ plot.addins <- function(gg) {
 ggsave(file.path(figsavedir, "binary-coverage-restricted.png"), width=width, height=height, units="in")
 
 (coverage_summary %>% 
-  filter(response == "binary", num.re == 2, excessvarmag != "none") %>%
+  filter(response == "binary", num.re == 2, excessvarmag != "none", prior != "No Random Effects") %>%
   ggplot(aes(x=prior, y=beta_col_coverage)) +
   ggtitle("Credible Interval Coverage in Binary Network Regression")) |>
   plot.addins()
@@ -193,7 +197,7 @@ ggsave(file.path(figsavedir, "binary-coverage.png"), width=width, height=height,
 ggsave(file.path(figsavedir, "continuous-coverage-restricted.png"), width=width, height=height, units="in")
 
 (coverage_summary %>% 
-  filter(response == "continuous", num.re == 2, excessvarmag != "none") %>%
+  filter(response == "continuous", num.re == 2, excessvarmag != "none", prior != "No Random Effects") %>%
   ggplot(aes(x=prior, y=beta_col_coverage)) +
   ggtitle("Credible Interval Coverage in Continuous Network Regression")) |>
   plot.addins()
