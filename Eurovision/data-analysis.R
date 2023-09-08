@@ -193,6 +193,20 @@ projected.ci.df |>
   kable(format="latex", booktabs=TRUE) |>
   add_header_above(c(" "=1,"Comparison Model"=2))
 
+# Take 2 with separate columns for mean and width ratios
+projected.ci.df |> 
+  inner_join(other.ci.df, by="Covariate") |>
+  mutate(MeanRatio = dp(Mean.x / Mean.y, 3),
+         WidthRatio = dp(Width.x / Width.y, 3)) |>
+  select(Covariate, Model=Projected.y, MeanRatio, WidthRatio) |>
+  pivot_wider(id_cols="Covariate", names_from="Model", values_from=c("MeanRatio", "WidthRatio"), names_glue="{Model} {.value}", names_sort = TRUE) |>
+  select(1,2,4,3,5) |> # Sort columns in the desired order
+  kable(format="latex", booktabs=TRUE, 
+        col.names=c("Covariate", "Mean Ratio", "Width Ratio", "Mean Ratio", "Width Ratio")) |>
+  add_header_above(c(" "=1, "No Random Effects"=2, "Non-Restricted Network Model"=2)) |>
+  add_header_above(c(" "=1,"Comparison Model"=4))
+
+
 ################################################################################
 # Plot changes in random effect values (posterior means)
 

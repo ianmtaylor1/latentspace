@@ -133,7 +133,7 @@ fig.width <- 9
 fig.height <- 6
 fig.res <- 150
 
-png(file.path(plotdir, "eurovision-votes-network.png"), width=9, height=5, units="in", res=fig.res)
+png(file.path(plotdir, "eurovision-votes-network.png"), width=9, height=9, units="in", res=fig.res)
 print(voteplot)
 dev.off()
 
