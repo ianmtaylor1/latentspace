@@ -32,6 +32,41 @@ allres$excessvarmag <- factor(allres$excessvarmag, levels=c("none", "small", "la
 # Other factors for ordering
 allres$re.type <- factor(allres$re.type, levels=c("none", "invgamma", "halfcauchy"))
 
+################################################################################
+## Transform results data frame into something easier to use
+
+deltamodels <- allres |> 
+  select(excessvarmag, excessvarcor, re.type, num.re, response,run, rep, design.seed, error.seed, 
+         (starts_with("delta") & !ends_with("true")) | ends_with("true")) |>
+  rename_with(function(x) gsub("delta", "param", x), starts_with("delta") & !ends_with("true")) |>
+  mutate(modelparam = "delta")
+
+betamodels <- allres |>
+  filter(re.type != "none") |>
+  select(excessvarmag, excessvarcor, re.type, num.re, response,run, rep, design.seed, error.seed, 
+         (starts_with("beta") & !ends_with("true")) | ends_with("true")) |>
+  rename_with(function(x) gsub("beta", "param", x), starts_with("beta") & !ends_with("true")) |>
+  mutate(modelparam = "beta")
+
+longerres <- rbind(deltamodels, betamodels)
+longerres <- longerres |>
+  mutate(modelnum = case_when(re.type == "none" ~ "M1",
+                              (modelparam == "beta") & (re.type == "invgamma") ~ "M2a",
+                              (modelparam == "beta") & (re.type == "halfcauchy") ~ "M2b",
+                              (modelparam == "delta") & (re.type == "invgamma") ~ "M3a",
+                              (modelparam == "delta") & (re.type == "halfcauchy") ~ "M3b")
+  )
+
+longerres <- longerres |> 
+  pivot_longer(param_int_mean:delta_dyad_true,
+               names_to=c("param","pindex","summary"),
+               names_pattern="(.*)_(.*)_(.*)",
+               values_to="value") |>
+  pivot_wider(names_from=c("param","summary"),
+              values_from="value")
+
+gc()
+
 ######## Means and Variances ###################################################
 
 var <- "col"
@@ -79,8 +114,8 @@ for (resp in c("continuous", "binary")) {
     theme_bw(base_family="serif") + 
     theme(legend.position = "none") +
     ggtitle("Receiver Covariate Posterior Means") +
-    xlab("Non-network Model Posterior Mean") +
-    ylab("Restricted Network Model Posterior Mean") + 
+    xlab("No Random Effects Posterior Mean (M1)") +
+    ylab("Restricted Network Model Posterior Mean (M3a)") + 
     geom_text(data=labeltext, mapping=aes(x=-Inf, y=Inf, label=label), hjust=-1, vjust=2 )
   ggsave(file.path(figsavedir, paste0(resp, "-mean-comparison.png")), width=width, height=height, units="in")
   
@@ -99,106 +134,92 @@ for (resp in c("continuous", "binary")) {
     theme_bw(base_family="serif") + 
     theme(legend.position = "none") +
     ggtitle("Receiver Covariate Posterior Variances") +
-    xlab("Non-network Model Posterior Variance") +
-    ylab("Restricted Network Model Posterior Variance") + 
+    xlab("No Random Effects Posterior Variance (M1)") +
+    ylab("Restricted Network Model Posterior Variance (M3a)") + 
     geom_text(data=labeltext, mapping=aes(x=-Inf, y=Inf, label=label), hjust=-1, vjust=2 )
   ggsave(file.path(figsavedir, paste0(resp, "-variance-comparison.png")), width=width, height=height, units="in")
 }
 
-####### Coverage ###############################################################
-
+##### Coverage 2.0 #############################################################
 
 # Create columns that tell whether the CI captured the true value
-for (vname in c("int", "row", "col", "dyad")) {
-  for (param in c("beta", "delta")) {
-    truth <- paste0(param, "_", vname, "_true")
-    ci.high <- paste0(param, "_", vname, "_95q")
-    ci.low <- paste0(param, "_", vname, "_5q")
-    capture <- paste0(param, "_", vname, "_captured")
-    
-    allres[,capture] <- ((allres[,ci.high] >= allres[,truth]) & (allres[,ci.low] <= allres[,truth])) * 1
-  }
-  
-  truth <- paste0("delta_", vname, "_true")
-  ci.high <- paste0("beta_", vname, "_95q")
-  ci.low <- paste0("beta_", vname, "_5q")
-  capture <- paste0("betadelta_", vname, "_captured")
-  
-  allres[,capture] <- ((allres[,ci.high] >= allres[,truth]) & (allres[,ci.low] <= allres[,truth])) * 1
-}
+longerres <- longerres |>
+  mutate(delta_captured = ((param_5q <= delta_true) & (param_95q >= delta_true)) * 1.0,
+         beta_captured = ((param_5q <= beta_true) & (param_95q >= beta_true)) * 1.0)
 
+coverage_summary_longer <- longerres |>
+  group_by(excessvarmag, excessvarcor, re.type, num.re, response, run, design.seed,
+           modelparam, modelnum, pindex) |>
+  summarize(beta_coverage = mean(beta_captured),
+            delta_coverage = mean(delta_captured))
 
-# Plots of coverage
-coverage_summary <- as.data.frame(
-  allres %>% 
-    group_by(excessvarcor, excessvarmag, re.type, num.re, response, run, design.seed) %>%
-    summarize(beta_int_coverage  = mean(beta_int_captured),
-              beta_row_coverage        = mean(beta_row_captured),
-              beta_col_coverage     = mean(beta_col_captured),
-              beta_dyad_coverage       = mean(beta_dyad_captured),
-              delta_int_coverage = mean(delta_int_captured),
-              delta_row_coverage       = mean(delta_row_captured),
-              delta_col_coverage    = mean(delta_col_captured),
-              delta_dyad_coverage      = mean(delta_dyad_captured),
-              betadelta_int_coverage = mean(betadelta_int_captured),
-              betadelta_row_coverage = mean(betadelta_row_captured),
-              betadelta_col_coverage = mean(betadelta_col_captured),
-              betadelta_dyad_coverage = mean(betadelta_dyad_captured))
-)
-coverage_summary$prior <- rep("", nrow(coverage_summary))
-coverage_summary$prior <- replace(coverage_summary$prior, coverage_summary$re.type == "none", "No Random Effects")
-coverage_summary$prior <- replace(coverage_summary$prior, coverage_summary$re.type == "invgamma", "Inverse-Gamma")
-coverage_summary$prior <- replace(coverage_summary$prior, coverage_summary$re.type == "halfcauchy", "Half-Cauchy")
-coverage_summary$prior <- factor(coverage_summary$prior, levels=c("No Random Effects", "Inverse-Gamma", "Half-Cauchy"))
-
-plotcolors <- RColorBrewer::brewer.pal(name="Set1", n=3)
-names(plotcolors) <- c("No Random Effects", "Inverse-Gamma", "Half-Cauchy")
+modelcolors <- RColorBrewer::brewer.pal(name="Paired", n=5)
+names(modelcolors) <- c("M2a", "M2b", "M3a", "M3b", "M1")
 
 width <- 7
-height <- 6
+height <- 4
 
-plot.addins <- function(gg) {
-  gg + geom_violin(aes(color=prior, fill=prior)) +
-  facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
-  geom_hline(yintercept=0.9, alpha=0.4) +
-  geom_hline(yintercept=qbinom(0.95, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
-  geom_hline(yintercept=qbinom(0.05, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
-  theme(aspect.ratio = 0.6, axis.text.x = element_text(angle=30, hjust=1)) + 
-  coord_cartesian(ylim=c(0,1)) +
-  theme_bw(base_family="serif") + 
-  theme(legend.position = "none", axis.text.x=element_text(angle=45, hjust=1, vjust=1)) +
-  xlab("Model Random Effects") +
-  ylab("90% Credible Interval Coverage") +
-  labs(color="Random Effect Prior", fill="Random Effect Prior") + 
-  geom_text(data=labeltext, mapping=aes(x=Inf, y=-Inf, label=label), hjust=2, vjust=-1 ) +
-  scale_color_manual(values=plotcolors) +
-  scale_fill_manual(values=plotcolors)
+coverage.plot.addins.v2 <- function(gg) {
+  gg + 
+    geom_violin(aes(color=modelnum, fill=modelnum), bw=0.02) +
+    #geom_jitter(aes(color=modelnum)) +
+    facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
+    geom_hline(yintercept=0.9, alpha=0.4) +
+    geom_hline(yintercept=qbinom(0.95, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
+    geom_hline(yintercept=qbinom(0.05, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
+    theme(aspect.ratio = 0.6, axis.text.x = element_text(angle=30, hjust=1)) + 
+    coord_cartesian(ylim=c(0,1)) +
+    theme_bw(base_family="serif") + 
+    theme(legend.position = "none", axis.text.x=element_text(angle=0, hjust=0.5, vjust=1)) +
+    xlab("Model") +
+    ylab("90% Credible Interval Coverage") +
+    labs(color="Model", fill="Model") + 
+    geom_text(data=labeltext, mapping=aes(x=Inf, y=-Inf, label=label), hjust=2, vjust=-1 ) +
+    scale_color_manual(values=modelcolors) +
+    scale_fill_manual(values=modelcolors)
 }
 
-(coverage_summary %>% 
-  filter(response == "binary", num.re == 2, excessvarmag != "none") %>%
-  ggplot(aes(x=prior, y=delta_col_coverage)) +
-  ggtitle("Credible Interval Coverage in Restricted Binary Network Regression")) |>
-  plot.addins()
-ggsave(file.path(figsavedir, "binary-coverage-restricted.png"), width=width, height=height, units="in")
-
-(coverage_summary %>% 
-  filter(response == "binary", num.re == 2, excessvarmag != "none", prior != "No Random Effects") %>%
-  ggplot(aes(x=prior, y=beta_col_coverage)) +
-  ggtitle("Credible Interval Coverage in Binary Network Regression")) |>
-  plot.addins()
+coverage_summary_longer |>
+  filter(response == "binary", num.re == 2, excessvarmag != "none", pindex == "col") |>
+  ggplot(aes(x=modelnum, y=delta_coverage)) |>
+  coverage.plot.addins.v2()
 ggsave(file.path(figsavedir, "binary-coverage.png"), width=width, height=height, units="in")
 
-(coverage_summary %>% 
-  filter(response == "continuous", num.re == 2, excessvarmag != "none") %>%
-  ggplot(aes(x=prior, y=delta_col_coverage)) +
-  ggtitle("Credible Interval Coverage in Restricted Continuous Network Regression")) |>
-  plot.addins()
-ggsave(file.path(figsavedir, "continuous-coverage-restricted.png"), width=width, height=height, units="in")
-
-(coverage_summary %>% 
-  filter(response == "continuous", num.re == 2, excessvarmag != "none", prior != "No Random Effects") %>%
-  ggplot(aes(x=prior, y=beta_col_coverage)) +
-  ggtitle("Credible Interval Coverage in Continuous Network Regression")) |>
-  plot.addins()
+coverage_summary_longer |>
+  filter(response == "continuous", num.re == 2, excessvarmag != "none", pindex == "col") |>
+  ggplot(aes(x=modelnum, y=delta_coverage)) |>
+  coverage.plot.addins.v2()
 ggsave(file.path(figsavedir, "continuous-coverage.png"), width=width, height=height, units="in")
+  
+################################################################################
+
+longerres <- longerres |>
+  mutate(delta_mean_error = param_mean - delta_true,
+         beta_mean_error = param_mean - beta_true,
+         delta_posterior_mse = delta_mean_error ^ 2 + param_var,
+         beta_posterior_mse = beta_mean_error ^ 2 + param_var)
+
+bias_summary_longer <- longerres |>
+  group_by(excessvarmag, excessvarcor, re.type, num.re, response, run, design.seed,
+           modelparam, modelnum, pindex) |>
+  summarize(beta_bias = mean(beta_mean_error),
+            delta_bias = mean(delta_mean_error),
+            beta_mse = mean(beta_mean_error^2),
+            delta_mse = mean(delta_mean_error^2),
+            beta_mean_posterior_mse = mean(beta_posterior_mse),
+            delta_mean_posterior_mse = mean(delta_posterior_mse))
+
+
+
+
+bias_summary_longer %>% 
+  filter(response == "binary", num.re == 2, excessvarmag != "none", pindex == "col") |>
+  ggplot(aes(x=modelnum, y=abs(delta_bias))) +
+  geom_violin(aes(color=modelnum, fill=modelnum)) +
+  facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller)
+
+bias_summary_longer %>% 
+  filter(response == "continuous", num.re == 2, excessvarmag != "none", pindex == "col") |>
+  ggplot(aes(x=modelnum, y=abs(delta_bias))) +
+  geom_violin(aes(color=modelnum, fill=modelnum)) +
+  facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller)
