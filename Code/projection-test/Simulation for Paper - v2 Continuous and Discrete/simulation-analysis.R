@@ -232,4 +232,4 @@ ggsave(file.path(figsavedir, "binary-bias.png"), width=width, height=height, uni
   ggplot(aes(x=modelnum, y=abs(delta_bias)))
   ) |>
   bias.plot.addins()
-ggsave(file.path(figsavedir, "continuout-bias.png"), width=width, height=height, units="in")
+ggsave(file.path(figsavedir, "continuous-bias.png"), width=width, height=height, units="in")
