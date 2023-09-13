@@ -154,8 +154,8 @@ ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
 ci.df$Projected <- factor(ci.df$Projected, levels=c("No Random Effects", "Non-Restricted Network Model", "Restricted Network Model"))
 ci.df$Covariate <- factor(ci.df$Covariate, levels=c("Country Contiguity", "Log Betting Odds", "Log Population", "Log GDP per Capita"))
 
-modelcolors <- RColorBrewer::brewer.pal(name="Paired", n=5)[c(2,4,5)]
-names(modelcolors) <- c("Non-Restricted Network Model", "Restricted Network Model", "No Random Effects")
+modelcolors <- RColorBrewer::brewer.pal(name="Paired", n=5)[c(5,2,4)]
+names(modelcolors) <- c("No Random Effects", "Non-Restricted Network Model", "Restricted Network Model")
 
 png(file.path(resultdir, "Eurovision-results-CI.png"), width=900, height=600)
 
