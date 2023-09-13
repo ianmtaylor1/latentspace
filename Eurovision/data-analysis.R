@@ -154,6 +154,9 @@ ci.df <- foreach(i=1:length(covars), .combine="rbind") %do% {
 ci.df$Projected <- factor(ci.df$Projected, levels=c("No Random Effects", "Non-Restricted Network Model", "Restricted Network Model"))
 ci.df$Covariate <- factor(ci.df$Covariate, levels=c("Country Contiguity", "Log Betting Odds", "Log Population", "Log GDP per Capita"))
 
+modelcolors <- RColorBrewer::brewer.pal(name="Paired", n=5)[c(2,4,5)]
+names(modelcolors) <- c("Non-Restricted Network Model", "Restricted Network Model", "No Random Effects")
+
 png(file.path(resultdir, "Eurovision-results-CI.png"), width=900, height=600)
 
 ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected, shape=Projected)) +
@@ -163,10 +166,12 @@ ggplot(ci.df, aes(x=Covariate, y=Mean, ymin=Low, ymax=High, color=Projected, sha
   geom_hline(yintercept=0) +
   #ggtitle("Posterior means and 90% credible intervals", 
   #        subtitle="Model Fixed Effects") +
-  labs(y="Estimate", color="", shape="", x="") +
   theme_bw(base_family="serif") + 
   theme(text=element_text(size=25), legend.position=c(0.75, 0.85)) +
-  coord_cartesian(ylim=c(-1.5, 1.5))
+  coord_cartesian(ylim=c(-1.5, 1.5)) +
+  scale_color_manual(values=modelcolors) +
+  scale_shape_manual(values=c(16,15,17), labels=names(modelcolors)) +
+  labs(y="Estimate", color="", shape="", x="")
 
 dev.off()
 
