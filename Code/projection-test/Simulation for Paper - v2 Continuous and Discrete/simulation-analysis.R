@@ -50,11 +50,12 @@ betamodels <- allres |>
 
 longerres <- rbind(deltamodels, betamodels)
 longerres <- longerres |>
-  mutate(modelnum = case_when(re.type == "none" ~ "M1",
-                              (modelparam == "beta") & (re.type == "invgamma") ~ "M2a",
-                              (modelparam == "beta") & (re.type == "halfcauchy") ~ "M2b",
-                              (modelparam == "delta") & (re.type == "invgamma") ~ "M3a",
-                              (modelparam == "delta") & (re.type == "halfcauchy") ~ "M3b")
+  mutate(modelnum = factor(case_when(re.type == "none" ~ "NoRE",
+                                     (modelparam == "beta") & (re.type == "invgamma") ~ "NR.ig",
+                                     (modelparam == "beta") & (re.type == "halfcauchy") ~ "NR.hc",
+                                     (modelparam == "delta") & (re.type == "invgamma") ~ "RNR.ig",
+                                    (modelparam == "delta") & (re.type == "halfcauchy") ~ "RNR.hc"),
+                           levels=c("NoRE", "NR.ig", "NR.hc", "RNR.ig", "RNR.hc"))
   )
 
 longerres <- longerres |> 
@@ -72,7 +73,7 @@ gc()
 var <- "col"
 num.re <- 2
 width <- 7
-height <- 3.5
+height <- 4
 
 mylabeller <- function(x) {
   if (colnames(x) == "excessvarcor") {
@@ -113,8 +114,8 @@ for (resp in c("continuous", "binary")) {
     theme_bw(base_family="serif") + 
     theme(legend.position = "none", axis.text.x = element_text(angle=30, hjust=1)) +
     #ggtitle("Receiver Covariate Posterior Means") +
-    xlab("No Random Effects Posterior Mean (M1)") +
-    ylab("Restricted Network Model Posterior Mean (M3a)") + 
+    xlab("No Random Effects Posterior Mean (NoRE)") +
+    ylab("Restricted Network Model Posterior Mean (RNR.ig)") + 
     geom_text(data=labeltext, mapping=aes(x=-Inf, y=Inf, label=label), hjust=-1, vjust=2 )
   ggsave(file.path(figsavedir, paste0(resp, "-mean-comparison.png")), width=width, height=height, units="in")
   
@@ -132,8 +133,8 @@ for (resp in c("continuous", "binary")) {
     theme_bw(base_family="serif") + 
     theme(legend.position = "none", axis.text.x = element_text(angle=30, hjust=1)) +
     #ggtitle("Receiver Covariate Posterior Variances") +
-    xlab("No Random Effects Posterior Variance (M1)") +
-    ylab("Restricted Network Model Posterior Variance (M3a)") + 
+    xlab("No Random Effects Posterior Variance (NoRE)") +
+    ylab("Restricted Network Model Posterior Variance (RNR.ig)") + 
     geom_text(data=labeltext, mapping=aes(x=-Inf, y=Inf, label=label), hjust=-1, vjust=2 )
   ggsave(file.path(figsavedir, paste0(resp, "-variance-comparison.png")), width=width, height=height, units="in")
 }
@@ -152,7 +153,7 @@ coverage_summary_longer <- longerres |>
             delta_coverage = mean(delta_captured))
 
 modelcolors <- RColorBrewer::brewer.pal(name="Paired", n=5)
-names(modelcolors) <- c("M2a", "M2b", "M3a", "M3b", "M1")
+names(modelcolors) <- c("NR.ig", "NR.hc", "RNR.ig", "RNR.hc", "NoRE")
 
 coverage.plot.addins.v2 <- function(gg) {
   gg + 
@@ -164,7 +165,7 @@ coverage.plot.addins.v2 <- function(gg) {
     geom_hline(yintercept=qbinom(0.05, 200, 0.9)/200, linetype="dashed", alpha=0.4) +
     coord_cartesian(ylim=c(0,1)) +
     theme_bw(base_family="serif") + 
-    theme(legend.position = "none", axis.text.x=element_text(angle=0, hjust=0.5, vjust=1)) +
+    theme(legend.position = "none", axis.text.x=element_text(angle=30, hjust=1)) +
     xlab("Model") +
     ylab("90% Credible Interval Coverage") +
     labs(color="Model", fill="Model") + 
@@ -184,7 +185,8 @@ ggsave(file.path(figsavedir, "binary-coverage.png"), width=width, height=height,
   filter(response == "continuous", num.re == 2, excessvarmag != "none", pindex == "col") |>
   ggplot(aes(x=modelnum, y=delta_coverage))
   ) |>
-  coverage.plot.addins.v2()
+  coverage.plot.addins.v2() +
+  coord_cartesian(ylim=c(0.5, 1))
 ggsave(file.path(figsavedir, "continuous-coverage.png"), width=width, height=height, units="in")
   
 ################################################################################
@@ -211,7 +213,7 @@ bias.plot.addins <- function(gg) {
     #geom_jitter(aes(color=modelnum)) +
     facet_grid(excessvarmag ~ excessvarcor, labeller = mylabeller) +
     theme_bw(base_family="serif") + 
-    theme(legend.position = "none", axis.text.x=element_text(angle=0, hjust=0.5, vjust=1)) +
+    theme(legend.position = "none", axis.text.x=element_text(angle=30, hjust=1)) +
     xlab("Model") +
     ylab("Absolute bias") +
     labs(color="Model", fill="Model") + 
@@ -231,5 +233,6 @@ ggsave(file.path(figsavedir, "binary-bias.png"), width=width, height=height, uni
   filter(response == "continuous", num.re == 2, excessvarmag != "none", pindex == "col") |>
   ggplot(aes(x=modelnum, y=abs(delta_bias)))
   ) |>
-  bias.plot.addins()
+  bias.plot.addins() +
+  coord_cartesian(ylim=c(0,0.05)) # Manual, I hate this but here we are
 ggsave(file.path(figsavedir, "continuous-bias.png"), width=width, height=height, units="in")
