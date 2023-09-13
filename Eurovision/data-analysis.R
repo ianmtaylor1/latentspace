@@ -177,9 +177,12 @@ dev.off()
 
 
 ################################################################################
-# Compare magnitude of posterior mean and CI width in table format
-dp <- function(x, places) {
-  format(round(x, places), nsmall=places)
+dp <- function(x, places, leadzero=TRUE) {
+  res <- format(round(x, places), nsmall=places)
+  if (!leadzero) {
+    res <- sub("^(-?)0.", "\\1.", res)
+  }
+  res
 }
 
 ci.df <- ci.df |> mutate(Width=High - Low)
