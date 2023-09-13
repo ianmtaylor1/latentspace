@@ -10,6 +10,14 @@ resultdir <- here::here("Code", "projection-test", "Simulation for Paper - v2 Co
 
 figsavedir <- here::here("Code", "projection-test", "Simulation for Paper - v2 Continuous and Discrete")
 
+dp <- function(x, places, leadzero=TRUE) {
+  res <- format(round(x, places), nsmall=places)
+  if (!leadzero) {
+    res <- sub("^(-?)0.", "\\1.", res)
+  }
+  res
+}
+
 # Read in all csv's, append into one dataframe
 allres <- foreach(f=list.files(resultdir, pattern="^job.*\\.csv"), .combine="rbind") %do% {
   cat(f, "\n")
@@ -152,6 +160,12 @@ coverage_summary_longer <- longerres |>
   summarize(beta_coverage = mean(beta_captured),
             delta_coverage = mean(delta_captured))
 
+# Find median coverage
+median_coverage <- coverage_summary_longer |>
+  group_by(excessvarmag, excessvarcor, re.type, num.re, response, modelparam, modelnum, pindex) |>
+  summarise(beta_coverage_median = median(beta_coverage),
+            delta_coverage_median = median(delta_coverage))
+
 modelcolors <- RColorBrewer::brewer.pal(name="Paired", n=5)
 names(modelcolors) <- c("NR.ig", "NR.hc", "RNR.ig", "RNR.hc", "NoRE")
 
@@ -178,7 +192,9 @@ coverage.plot.addins.v2 <- function(gg) {
   filter(response == "binary", num.re == 2, excessvarmag != "none", pindex == "col") |>
   ggplot(aes(x=modelnum, y=delta_coverage))
   ) |>
-  coverage.plot.addins.v2()
+  coverage.plot.addins.v2() +
+  geom_text(aes(label=dp(delta_coverage_median, 2, leadzero=FALSE), y=.83), vjust=1,
+            data = median_coverage |> filter(response == "binary", num.re == 2, excessvarmag != "none", pindex == "col"))
 ggsave(file.path(figsavedir, "binary-coverage.png"), width=width, height=height, units="in")
 
 (coverage_summary_longer |>
@@ -186,6 +202,8 @@ ggsave(file.path(figsavedir, "binary-coverage.png"), width=width, height=height,
   ggplot(aes(x=modelnum, y=delta_coverage))
   ) |>
   coverage.plot.addins.v2() +
+  geom_text(aes(label=dp(delta_coverage_median, 2, leadzero=FALSE), y=.83), vjust=1,
+            data = median_coverage |> filter(response == "continuous", num.re == 2, excessvarmag != "none", pindex == "col")) +
   coord_cartesian(ylim=c(0.5, 1))
 ggsave(file.path(figsavedir, "continuous-coverage.png"), width=width, height=height, units="in")
   
@@ -207,6 +225,12 @@ bias_summary_longer <- longerres |>
             beta_mean_posterior_mse = mean(beta_posterior_mse),
             delta_mean_posterior_mse = mean(delta_posterior_mse))
 
+# Find median bias
+median_bias <- bias_summary_longer |>
+  group_by(excessvarmag, excessvarcor, re.type, num.re, response, modelparam, modelnum, pindex) |>
+  summarise(beta_absbias_median = median(abs(beta_bias)),
+            delta_absbias_median = median(abs(delta_bias)))
+
 bias.plot.addins <- function(gg) {
   gg + 
     geom_violin(aes(color=modelnum, fill=modelnum)) +
@@ -226,7 +250,9 @@ bias.plot.addins <- function(gg) {
   filter(response == "binary", num.re == 2, excessvarmag != "none", pindex == "col") |>
   ggplot(aes(x=modelnum, y=abs(delta_bias)))
   ) |>
-  bias.plot.addins()
+  bias.plot.addins() +
+  geom_text(aes(label=dp(delta_absbias_median, 2, leadzero=FALSE), y=delta_absbias_median), nudge_y=0.12, vjust=0,
+            data = median_bias |> filter(response == "binary", num.re == 2, excessvarmag != "none", pindex == "col"))
 ggsave(file.path(figsavedir, "binary-bias.png"), width=width, height=height, units="in")
 
 (bias_summary_longer %>% 
@@ -234,5 +260,7 @@ ggsave(file.path(figsavedir, "binary-bias.png"), width=width, height=height, uni
   ggplot(aes(x=modelnum, y=abs(delta_bias)))
   ) |>
   bias.plot.addins() +
+  geom_text(aes(label=dp(delta_absbias_median, 3, leadzero=FALSE), y=delta_absbias_median), nudge_y=0.01, vjust=0,
+            data = median_bias |> filter(response == "continuous", num.re == 2, excessvarmag != "none", pindex == "col")) +
   coord_cartesian(ylim=c(0,0.05)) # Manual, I hate this but here we are
 ggsave(file.path(figsavedir, "continuous-bias.png"), width=width, height=height, units="in")
