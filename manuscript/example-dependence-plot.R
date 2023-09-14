@@ -110,7 +110,7 @@ edgerelplot <- ggraph(edgerelnet, layout="manual",
   geom_edge_link(aes(color=common)) +
   geom_node_label(aes(label=obsname), parse=TRUE) +
   theme_graph() +
-  scale_color_brewer(palette="Dark2") +
+  scale_color_brewer(palette="Set1") +
   theme(legend.position="none") 
 edgerelplot
 
